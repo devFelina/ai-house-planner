@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       initialRoute:'/login',
       routes:{
         '/login': (context) => const LoginView(),
-        '/intake': (context) => const IntakeView(),
+        '/intake_view': (context) => const IntakeView(),
       },
 
     );

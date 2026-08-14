@@ -28,7 +28,7 @@ class _LoginViewState extends State<LoginView> {
       
       if (mounted) {
         // Navigate to the Intake form after successful login
-        Navigator.pushReplacementNamed(context, '/intake');
+        Navigator.pushReplacementNamed(context, '/intake_view');
       }
     } catch (e) {
       if (mounted) {
@@ -45,19 +45,26 @@ class _LoginViewState extends State<LoginView> {
     setState(() => _isLoading = true);
     try {
     
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final GoogleSignInAccount? googleUser = await GoogleSignIn(
+        clientId: '934876935164-qlo6nk0rcvsac4pi4na3kcrr995mjl79.apps.googleusercontent.com',
+      ).signIn();
+      if (googleUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+      
+      final GoogleSignInAuthentication? googleAuth = await googleUser.authentication;
+      // final credential = GoogleAuthProvider.credential(
+      //   accessToken: googleAuth?.accessToken,
+      //   idToken: googleAuth?.idToken,
+      // );
+      // await FirebaseAuth.instance.signInWithCredential(credential);
     
       await Future.delayed(const Duration(seconds: 1));
       
       if (mounted) {
         // Navigate to the Intake form after successful login
-        Navigator.pushReplacementNamed(context, '/intake');
+        Navigator.pushReplacementNamed(context, '/intake_view');
       }
     } catch (e) {
       if (mounted) {

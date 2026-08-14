@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "934876935164",
+    "project_id": "ai-house-planner-9a1f3",
+    "storage_bucket": "ai-house-planner-9a1f3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:934876935164:android:ae34e38b4ffadd86917879",
+        "android_client_info": {
+          "package_name": "com.company.aihouseplanner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "934876935164-qlo6nk0rcvsac4pi4na3kcrr995mjl79.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0_TVd1UMEXCbgKSFVzgfCDnQtbztTwR0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "934876935164-qlo6nk0rcvsac4pi4na3kcrr995mjl79.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
