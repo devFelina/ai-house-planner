@@ -9,10 +9,17 @@
 
 body {
   margin: 0;
-  background-color: #fcfcfd; /* Warm ultra-light gray/white */
-  color: #1f2937; /* Dark charcoal */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  background-color: #fcfcfd;
+}
+
+html.dark {
+  background-color: #030712;
+  color: #ffffff;
 }
 
 /* Custom premium utility styles */

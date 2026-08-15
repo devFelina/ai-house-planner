@@ -69,6 +69,12 @@ const authSlice = createSlice({
       state.status = 'idle';
       state.error = null;
     },
+    setMockAuth: (state, action: PayloadAction<UserProfile>) => {
+      state.user = action.payload;
+      state.token = 'mock_token';
+      state.status = 'succeeded';
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -97,5 +103,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuth } = authSlice.actions;
+export const { clearAuth, setMockAuth } = authSlice.actions;
 export default authSlice.reducer;
