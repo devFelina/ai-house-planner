@@ -23,9 +23,8 @@ const LoginPage: React.FC = () => {
       dispatch(setMockAuth({
         uid: 'mock-123',
         email: email,
-        displayName: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1),
-        role: email.startsWith('architect') ? 'architect' : 'contractor',
-      }));
+        role: email.startsWith('architect') ? 'Architect' : 'Contractor',
+      } as any));
       navigate('/dashboard');
     } else {
       setError('Invalid email or password.');
@@ -40,9 +39,8 @@ const LoginPage: React.FC = () => {
       dispatch(setMockAuth({
         uid: 'mock-google-123',
         email: 'user@gmail.com',
-        displayName: 'Google User',
-        role: 'homeowner',
-      }));
+        role: 'Architect',
+      } as any));
       navigate('/dashboard');
     }, 1000);
   };
