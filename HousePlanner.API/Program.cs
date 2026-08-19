@@ -3,8 +3,14 @@ using Google.Apis.Auth.OAuth2;
 using HousePlanner.API.Middleware;
 using HousePlanner.API.Services;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using HousePlanner.API.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add PostgreSQL DbContext
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 1. Add CORS services allowing our React frontend client
 builder.Services.AddCors(options =>

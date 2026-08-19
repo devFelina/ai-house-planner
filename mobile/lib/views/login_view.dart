@@ -18,17 +18,16 @@ class _LoginViewState extends State<LoginView> {
     setState(() => _isLoading = true);
     try {
       
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      // await FirebaseAuth.instance.signInWithEmailAndPassword(
+      //   email: _emailController.text.trim(),
+      //   password: _passwordController.text.trim(),
+      // );
       
       // Simulating a network delay 
       await Future.delayed(const Duration(seconds: 1));
       
       if (mounted) {
-        // Navigate to the Intake form after successful login
-        Navigator.pushReplacementNamed(context, '/intake_view');
+        Navigator.pushReplacementNamed(context, '/land_submission');
       }
     } catch (e) {
       if (mounted) {
@@ -47,6 +46,7 @@ class _LoginViewState extends State<LoginView> {
     
       final GoogleSignInAccount? googleUser = await GoogleSignIn(
         clientId: '934876935164-qlo6nk0rcvsac4pi4na3kcrr995mjl79.apps.googleusercontent.com',
+        scopes: ['email'],
       ).signIn();
       if (googleUser == null) {
         if (mounted) setState(() => _isLoading = false);
@@ -63,8 +63,7 @@ class _LoginViewState extends State<LoginView> {
       await Future.delayed(const Duration(seconds: 1));
       
       if (mounted) {
-        // Navigate to the Intake form after successful login
-        Navigator.pushReplacementNamed(context, '/intake_view');
+        Navigator.pushReplacementNamed(context, '/land_submission');
       }
     } catch (e) {
       if (mounted) {
@@ -190,6 +189,11 @@ class _LoginViewState extends State<LoginView> {
                           ),
                           label: const Text('Continue with Google', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () => Navigator.pushReplacementNamed(context, '/register'),
+                        child: const Text('Didn\'t sign in yet? Register', style: TextStyle(color: Colors.indigo)),
                       ),
                     ],
                   ),

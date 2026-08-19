@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 import 'views/login_view.dart';
+import 'views/register_view.dart';
 import 'views/intake_view.dart';
 
 void main() async {
@@ -34,7 +35,8 @@ class MyApp extends StatelessWidget {
       initialRoute:'/login',
       routes:{
         '/login': (context) => const LoginView(),
-        '/intake_view': (context) => const IntakeView(),
+        '/register': (context) => const RegisterView(),
+        '/land_submission': (context) => const IntakeView(),
       },
 
     );
