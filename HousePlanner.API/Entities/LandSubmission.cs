@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HousePlanner.Domain.Entities
+namespace HousePlanner.API.Entities
 {
     [Table("LandSubmissions")]
     public class LandSubmission
@@ -17,7 +17,7 @@ namespace HousePlanner.Domain.Entities
 
         [Required]
         [Column(TypeName="decimal(14,2)")]
-        public decimal BudgetLkr {get;set}
+        public decimal BudgetLkr {get;set;}
 
         [Required]
         [Column(TypeName="decimal(10,2)")]
@@ -30,7 +30,7 @@ namespace HousePlanner.Domain.Entities
         public string? ManualTerrainType {get;set;} //fallback if there is no photo
 
         [Required]
-        pubic int PreferredBedrooms {get;set;}
+        public int PreferredBedrooms {get;set;}
 
         [Required]
         public int PreferredFloors {get;set;}
