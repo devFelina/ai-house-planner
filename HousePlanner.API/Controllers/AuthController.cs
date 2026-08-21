@@ -72,5 +72,57 @@ namespace HousePlanner.API.Controllers
             var userInfo = await _firebaseAuthService.VerifyTokenAsync(requestDto.Token);
             return Ok(userInfo);
         }
+
+        /// <summary>
+        /// Native PostgreSQL Registration (No Firebase)
+        /// </summary>
+        [HttpPost("local/register")]
+        public async Task<IActionResult> LocalRegister([FromBody] LocalRegisterRequestDto request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var existing = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (existing != null) return BadRequest("User with this email already exists.");
+
+            var newUser = new User
+            {
+                Email = request.Email,
+                FullName = request.FullName,
+                PasswordHash = request.Password, // TODO: Use a proper password hasher like BCrypt in production
+                RoleId = request.RoleId == 0 ? 1 : request.RoleId, // Default to 1
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            _dbContext.Users.Add(newUser);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Registration successful", UserId = newUser.Id });
+        }
+
+        /// <summary>
+        /// Native PostgreSQL Login (No Firebase)
+        /// </summary>
+        [HttpPost("local/login")]
+        public async Task<IActionResult> LocalLogin([FromBody] LocalLoginRequestDto request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await _dbContext.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (user == null || user.PasswordHash != request.Password) 
+            {
+                return Unauthorized("Invalid email or password.");
+            }
+
+            // Return user info (In a real app, generate a JWT token here)
+            return Ok(new 
+            { 
+                Message = "Login successful", 
+                User = new { user.Id, user.Email, user.FullName, Role = user.Role?.Name }
+            });
+        }
     }
 }
