@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -13,13 +14,36 @@ class _LoginViewState extends State<LoginView> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  void _login() async { 
+  Future<void> _signInWithEmail() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() => _isLoading = false);
-      
-      Navigator.pushReplacementNamed(context, '/land_submission'); 
+    try {
+      final dio = Dio();
+      final response = await dio.post(
+        'http://localhost:5000/api/v1/auth/local/login',
+        data: {
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+        },
+      );
+
+      if (response.statusCode == 200 && mounted) {
+        Navigator.pushReplacementNamed(context, '/land_submission');
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        final message = e.response?.data?.toString() ?? e.message ?? 'Login failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $message'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -138,7 +162,7 @@ class _LoginViewState extends State<LoginView> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => Navigator.pushNamed(context, '/register'),
                           child: const Text(
                             'Forgot password?',
                             style: TextStyle(color: secondaryColor, fontWeight: FontWeight.w600),
@@ -152,7 +176,7 @@ class _LoginViewState extends State<LoginView> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
+                          onPressed: _isLoading ? null : _signInWithEmail,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryContainer,
                             foregroundColor: Colors.white,
