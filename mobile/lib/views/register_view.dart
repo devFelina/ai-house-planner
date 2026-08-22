@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:dio/dio.dart';
+
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
 
@@ -10,11 +12,56 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   int _selectedRoleIndex = 0;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
   
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+
+  Future<void> _register() async {
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please agree to the Terms of Service.')));
+      return;
+    }
+    if (_passwordController.text != _confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final dio = Dio();
+      final response = await dio.post(
+        'http://localhost:5265/api/v1/auth/local/register',
+        data: {
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text.trim(),
+          'fullName': _nameController.text.trim(),
+          'roleId': _selectedRoleIndex + 1, // Basic mapping (0->1, 1->2...)
+        },
+      );
+
+      if (response.statusCode == 200 && mounted) {
+        Navigator.pushReplacementNamed(context, '/land_submission');
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        final message = e.response?.data?.toString() ?? e.message ?? 'Registration failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $message'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Widget _buildRoleButton(String title, int index) {
     final isSelected = _selectedRoleIndex == index;
@@ -189,21 +236,23 @@ class _RegisterViewState extends State<RegisterView> {
                     SizedBox(
                       height: 64,
                       child: ElevatedButton(
-                        onPressed: () {}, // Submit logic here
+                        onPressed: _isLoading ? null : _register, // Submit logic here
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1A1A2E),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                           elevation: 8,
                           shadowColor: const Color(0xFF1A1A2E).withOpacity(0.3),
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, color: Colors.white),
-                          ],
-                        ),
+                        child: _isLoading 
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, color: Colors.white),
+                              ],
+                            ),
                       ),
                     ),
                     const SizedBox(height: 24),
