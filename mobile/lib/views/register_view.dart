@@ -33,7 +33,7 @@ class _RegisterViewState extends State<RegisterView> {
     try {
       final dio = Dio();
       final response = await dio.post(
-        'http://localhost:5000/api/v1/auth/local/register',
+        'http://localhost:5265/api/v1/auth/local/register',
         data: {
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),

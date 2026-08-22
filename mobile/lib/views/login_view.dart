@@ -19,7 +19,7 @@ class _LoginViewState extends State<LoginView> {
     try {
       final dio = Dio();
       final response = await dio.post(
-        'http://localhost:5000/api/v1/auth/local/login',
+        'http://localhost:5265/api/v1/auth/local/login',
         data: {
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim(),
