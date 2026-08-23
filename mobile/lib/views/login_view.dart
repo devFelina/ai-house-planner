@@ -1,5 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -47,6 +52,42 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  Future<void> _signInWithGoogle() async{
+    setState(()=>_isLoading=true);
+
+    try{
+      final GoogleSignInAccount? googleUser=await GoogleSignIn(
+        clientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'],
+      ).signIn();
+
+      if(googleUser==null){
+        setState(()=> _isLoading=false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth=await googleUser.authentication;
+
+      final OAuthCredential credential=GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final UserCredential userCredential=
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if(userCredential.user!=null && mounted){
+        Navigator.pushReplacementNamed(context, '/land_submission');
+      }
+    }catch(e){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-In failed: ${e.toString()}'),backgroundColor: Colors.red,)
+        );
+      }
+    }finally{
+      if(mounted) setState(()=> _isLoading=false);
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -84,7 +125,7 @@ class _LoginViewState extends State<LoginView> {
                           borderRadius: BorderRadius.circular(32),
                           boxShadow: [
                             BoxShadow(
-                              color: secondaryColor.withOpacity(0.15),
+                              color: secondaryColor.withValues(alpha: 0.15),
                               blurRadius: 32,
                               offset: const Offset(0, 12),
                             ),
@@ -182,7 +223,7 @@ class _LoginViewState extends State<LoginView> {
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             elevation: 4,
-                            shadowColor: primaryContainer.withOpacity(0.4),
+                            shadowColor: primaryContainer.withValues(alpha: 0.4),
                           ),
                           child: _isLoading
                               ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -190,7 +231,45 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
                       const SizedBox(height: 24),
+
+                      const SizedBox(height: 24),
+                      const Row(
+                        children: [
+                          Expanded(child: Divider()),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('OR', style: TextStyle(color: Color(0xFF78767D), fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                       
+                      // Google Sign-In Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _signInWithGoogle,
+                          icon: Image.network(
+                            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+                            height: 24,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 32),
+                          ),
+                          label: const Flexible(
+                            child: Text(
+                              'Continue with Google',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF00000B)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            side: const BorderSide(color: Color(0xFFE5E7EB), width: 2),
+                          ),
+                        ),
+                      ),
+                                            
                       // Footer
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
