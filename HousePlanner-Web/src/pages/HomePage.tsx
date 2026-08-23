@@ -1,75 +1,157 @@
 import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Html, useGLTF, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Environment, Html, useGLTF } from '@react-three/drei';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { Mic, ArrowRight, Layers, Sparkles, Building2, Eye, Box, Moon, Sun, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Mic, ArrowRight, Sparkles, Box, Moon, Sun, ChevronRight, ChevronLeft } from 'lucide-react';
 import * as THREE from 'three';
 
 // ---------------------------------------------------------
 // 3D Components
 // ---------------------------------------------------------
 
+const AnimatedPart = ({ start, end, yOffset = 0, scaleBase = 1, children }: any) => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    // Run animation once and stop when reaching 'end'
+    const t = clock.elapsedTime;
+    if (t < start) {
+      if (ref.current) ref.current.scale.setScalar(0.0001);
+      return;
+    }
+    const progress = Math.max(0, Math.min(1, (t - start) / (end - start)));
+    const ease = 1 - Math.pow(1 - progress, 4); // easeOutQuart
+    if (ref.current) {
+      ref.current.scale.setScalar(Math.max(0.0001, ease * scaleBase));
+      if (yOffset !== 0) {
+        ref.current.position.y = yOffset * (1 - ease);
+      }
+    }
+  });
+  return <group ref={ref}>{children}</group>;
+};
+
 const ProceduralHouse = () => {
   const groupRef = useRef<THREE.Group>(null);
+  const mats = React.useMemo(() => ({
+    grass: new THREE.MeshStandardMaterial({ color: '#3f6212', roughness: 1 }),
+    asphalt: new THREE.MeshStandardMaterial({ color: '#3f3f46', roughness: 0.9 }),
+    concrete: new THREE.MeshStandardMaterial({ color: '#d4d4d8', roughness: 0.9 }),
+    wall: new THREE.MeshStandardMaterial({ color: '#f4f4f5', roughness: 0.9 }),
+    accentWall: new THREE.MeshStandardMaterial({ color: '#52525b', roughness: 0.8 }),
+    wood: new THREE.MeshStandardMaterial({ color: '#78350f', roughness: 0.7 }),
+    glass: new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.7, depthWrite: false }),
+    frame: new THREE.MeshStandardMaterial({ color: '#171717', roughness: 0.5 }),
+    roof: new THREE.MeshStandardMaterial({ color: '#1c1917', roughness: 0.8 }),
+    soil: new THREE.MeshStandardMaterial({ color: '#292524', roughness: 1 }),
+    leaves: new THREE.MeshStandardMaterial({ color: '#15803d', roughness: 0.9 }),
+    metal: new THREE.MeshStandardMaterial({ color: '#52525b', roughness: 0.4, metalness: 0.8 }),
+    lightBulb: new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#fef08a', emissiveIntensity: 2 })
+  }), []);
+
   return (
-    <group ref={groupRef} position={[2, -1, 0]} scale={1.2}>
-      {/* Foundation Base */}
-      <mesh position={[0, -0.1, 0]}>
-        <boxGeometry args={[9, 0.2, 7]} />
-        <meshStandardMaterial color="#d1d5db" roughness={0.9} />
-      </mesh>
-      {/* Main Ground Floor */}
-      <mesh position={[0, 1.4, 0]}>
-        <boxGeometry args={[7.6, 2.8, 5.6]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.1} />
-      </mesh>
-      {/* Large Glass Windows Front */}
-      <mesh position={[0, 1.4, 2.85]}>
-        <boxGeometry args={[4.5, 2.6, 0.1]} />
-        <meshStandardMaterial color="#111827" roughness={0.05} metalness={0.95} transparent opacity={0.85} />
-      </mesh>
-      {/* Second Floor Cantilever */}
-      <mesh position={[0.5, 4.0, 0.5]}>
-        <boxGeometry args={[6, 2.4, 6]} />
-        <meshStandardMaterial color="#1f2937" roughness={0.7} />
-      </mesh>
-      {/* Second Floor Glass */}
-      <mesh position={[0.5, 4.0, 3.55]}>
-        <boxGeometry args={[5, 2.2, 0.1]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.9} transparent opacity={0.8} />
-      </mesh>
-      {/* Wood Paneling Accent */}
-      <mesh position={[-2.6, 4.0, 3.5]}>
-        <boxGeometry args={[1.2, 2.4, 0.2]} />
-        <meshStandardMaterial color="#92400e" roughness={0.8} />
-      </mesh>
-      {/* Roof */}
-      <mesh position={[0.5, 5.3, 0.5]}>
-        <boxGeometry args={[6.4, 0.2, 6.4]} />
-        <meshStandardMaterial color="#374151" roughness={0.9} />
-      </mesh>
-      {/* Swimming Pool Water */}
-      <mesh position={[-2.5, -0.05, 4.5]}>
-        <boxGeometry args={[3, 0.1, 2.5]} />
-        <meshStandardMaterial color="#0ea5e9" roughness={0.1} metalness={0.3} transparent opacity={0.9} />
-      </mesh>
-      {/* Pool Deck */}
-      <mesh position={[-2.5, -0.08, 4.5]}>
-        <boxGeometry args={[3.4, 0.05, 2.9]} />
-        <meshStandardMaterial color="#9ca3af" roughness={1} />
-      </mesh>
-      {/* Minimalist Tree / Landscaping */}
-      <group position={[3.5, 0, 3]}>
-        <mesh position={[0, 1, 0]}>
-          <cylinderGeometry args={[0.1, 0.1, 2]} />
-          <meshStandardMaterial color="#4b5563" />
+    <group ref={groupRef} position={[2, -1, 0]} scale={0.7}>
+      
+      {/* TIME 0-1: Landscaping & Boundary */}
+      <AnimatedPart start={0} end={1.5} yOffset={-1}>
+        <mesh position={[0, -0.05, 0]} receiveShadow material={mats.grass}>
+          <boxGeometry args={[26, 0.1, 26]} />
         </mesh>
-        <mesh position={[0, 2.5, 0]}>
-          <sphereGeometry args={[1.2, 16, 16]} />
-          <meshStandardMaterial color="#15803d" roughness={0.9} />
+        <group>
+          <mesh position={[0, 1, -13]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[26, 2, 0.4]} /></mesh>
+          <mesh position={[-13, 1, 0]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[0.4, 2, 26]} /></mesh>
+          <mesh position={[13, 1, 0]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[0.4, 2, 26]} /></mesh>
+          <mesh position={[-8.5, 1, 13]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[9, 2, 0.4]} /></mesh>
+          <mesh position={[8.5, 1, 13]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[9, 2, 0.4]} /></mesh>
+        </group>
+      </AnimatedPart>
+
+      {/* TIME 1-2.5: Driveway & Pathway */}
+      <AnimatedPart start={1} end={2.5}>
+        <mesh position={[-2.5, 0.02, 8]} receiveShadow material={mats.asphalt}><boxGeometry args={[5, 0.05, 10]} /></mesh>
+        <mesh position={[2, 0.02, 8]} receiveShadow material={mats.concrete}><boxGeometry args={[2, 0.05, 10]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 2-3.5: Foundation & Steps */}
+      <AnimatedPart start={2} end={3.5} yOffset={-1}>
+        <mesh position={[0, 0.2, 0]} castShadow receiveShadow material={mats.concrete}>
+          <boxGeometry args={[12, 0.4, 8]} />
         </mesh>
-      </group>
+        <mesh position={[2, 0.15, 4.5]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[3, 0.3, 1]} /></mesh>
+        <mesh position={[2, 0.3, 4.2]} castShadow receiveShadow material={mats.concrete}><boxGeometry args={[3, 0.2, 0.6]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 3-4.5: Ground Floor Structure */}
+      <AnimatedPart start={3} end={4.5} yOffset={2}>
+        <mesh position={[2.9, 1.9, 0]} castShadow receiveShadow material={mats.wall}>
+          <boxGeometry args={[6.0, 3, 7.8]} />
+        </mesh>
+        <mesh position={[-3, 1.9, 0]} castShadow receiveShadow material={mats.accentWall}>
+          <boxGeometry args={[5.8, 3, 7.8]} />
+        </mesh>
+        <mesh position={[0.6, 1.9, 4.1]} castShadow receiveShadow material={mats.frame}><boxGeometry args={[0.3, 3, 0.3]} /></mesh>
+        <mesh position={[3.4, 1.9, 4.1]} castShadow receiveShadow material={mats.frame}><boxGeometry args={[0.3, 3, 0.3]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 4-5.5: Ground Floor Details (Doors/Windows) */}
+      <AnimatedPart start={4} end={5.5}>
+        <mesh position={[-3, 1.5, 3.96]} material={mats.frame}><boxGeometry args={[4.2, 2.4, 0.1]} /></mesh>
+        <mesh position={[2, 1.6, 3.96]} material={mats.wood}><boxGeometry args={[1.4, 2.4, 0.1]} /></mesh>
+        <mesh position={[1.4, 1.5, 4.02]} material={mats.metal}><cylinderGeometry args={[0.03, 0.03, 0.4]} /></mesh> 
+        <mesh position={[4.5, 1.8, 3.96]} material={mats.glass}><boxGeometry args={[2, 2, 0.1]} /></mesh>
+        <mesh position={[4.5, 1.8, 3.96]} material={mats.frame}><boxGeometry args={[2.2, 2.2, 0.15]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 5-6.5: First Floor Slab */}
+      <AnimatedPart start={5} end={6.5} yOffset={2}>
+        <mesh position={[0, 3.55, 0]} castShadow receiveShadow material={mats.concrete}>
+          <boxGeometry args={[12.4, 0.3, 8.4]} />
+        </mesh>
+        <mesh position={[2, 4.05, 4.1]} material={mats.glass}><boxGeometry args={[4, 1, 0.05]} /></mesh>
+        <mesh position={[2, 4.55, 4.1]} material={mats.metal}><boxGeometry args={[4, 0.05, 0.1]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 6-7.5: First Floor Walls & Windows */}
+      <AnimatedPart start={6} end={7.5} yOffset={2}>
+        <mesh position={[0, 5.1, -0.5]} castShadow receiveShadow material={mats.wall}>
+          <boxGeometry args={[11.8, 2.8, 6.8]} />
+        </mesh>
+        <mesh position={[-3, 5.1, 2.96]} castShadow receiveShadow material={mats.wood}>
+          <boxGeometry args={[5, 2.8, 0.1]} />
+        </mesh>
+        <mesh position={[2, 5.1, 2.96]} material={mats.glass}><boxGeometry args={[4, 2.2, 0.1]} /></mesh>
+        <mesh position={[2, 5.1, 2.96]} material={mats.frame}><boxGeometry args={[4.2, 2.4, 0.15]} /></mesh>
+      </AnimatedPart>
+
+      {/* TIME 7-8.5: Roof & Eaves */}
+      <AnimatedPart start={7} end={8.5} yOffset={3}>
+        <mesh position={[0, 6.7, -0.5]} castShadow receiveShadow material={mats.roof}>
+          <boxGeometry args={[12.8, 0.4, 7.8]} />
+        </mesh>
+      </AnimatedPart>
+
+      {/* TIME 8-10: Landscaping Details & Gates */}
+      <AnimatedPart start={8} end={10} yOffset={1}>
+        <mesh position={[-2.5, 1, 13]} material={mats.metal}><boxGeometry args={[4.8, 1.8, 0.1]} /></mesh>
+        <mesh position={[2, 1, 13]} material={mats.metal}><boxGeometry args={[1.5, 1.8, 0.1]} /></mesh>
+        
+        <mesh position={[8, 0.1, 8]} material={mats.soil}><boxGeometry args={[4, 0.2, 4]} /></mesh>
+        <mesh position={[-8, 0.1, -8]} material={mats.soil}><boxGeometry args={[4, 0.2, 4]} /></mesh>
+
+        <group position={[8, 0, 8]}>
+          <mesh position={[0, 1, 0]} castShadow material={mats.wood}><cylinderGeometry args={[0.2, 0.3, 2]} /></mesh>
+          <mesh position={[0, 2.5, 0]} castShadow material={mats.leaves}><icosahedronGeometry args={[1.5, 1]} /></mesh>
+        </group>
+        <group position={[-8, 0, -8]}>
+          <mesh position={[0, 1, 0]} castShadow material={mats.wood}><cylinderGeometry args={[0.2, 0.3, 2]} /></mesh>
+          <mesh position={[0, 3, 0]} castShadow material={mats.leaves}><icosahedronGeometry args={[1.8, 1]} /></mesh>
+        </group>
+        
+        <mesh position={[4, 0.5, 4.5]} castShadow material={mats.leaves}><sphereGeometry args={[0.6]} /></mesh>
+        <mesh position={[5, 0.4, 4.5]} castShadow material={mats.leaves}><sphereGeometry args={[0.4]} /></mesh>
+      </AnimatedPart>
+
+
     </group>
   );
 };
@@ -128,14 +210,18 @@ const HouseScene = ({ isDark }: { isDark: boolean }) => {
       
       <Environment preset={isDark ? "night" : "city"} blur={0.8} />
       
-      <Suspense fallback={null}>
-        <ProceduralHouse />
-      </Suspense>
+      {/* Centered the house and moved up further */}
+      <group position={[-2, 1.2, 0]}>
+        <Suspense fallback={null}>
+          <ProceduralHouse />
+        </Suspense>
+      </group>
 
-      <ContactShadows position={[0, -1.05, 0]} opacity={isDark ? 0.9 : 0.6} scale={30} blur={2.5} far={4} color="#000000" />
+      {/* ContactShadows removed to prevent severe Z-fighting glitching with the physical grass floor */}
 
       {/* Floating Architectural Annotations */}
-      <Html position={[3, 4, 2]} center className="pointer-events-none">
+      {/* Floor Area points left towards the ground floor main volume */}
+      <Html position={[3.0, 2.46, 2.77]} center className="pointer-events-none">
         <div className="relative flex items-center gap-4">
           <div className="w-16 h-[1px] bg-white/50 dark:bg-gray-500/50 hidden md:block"></div>
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 px-4 py-2 rounded-lg shadow-xl text-xs font-mono w-max transition-colors">
@@ -144,7 +230,8 @@ const HouseScene = ({ isDark }: { isDark: boolean }) => {
           </div>
         </div>
       </Html>
-      <Html position={[-3, 5, 2]} center className="pointer-events-none">
+      {/* Bedrooms points right towards the upper floor slab / balcony base */}
+      <Html position={[-6.0, 3.68, 2.07]} center className="pointer-events-none">
         <div className="relative flex items-center gap-4 flex-row-reverse">
           <div className="w-16 h-[1px] bg-gray-900/50 dark:bg-gray-500/50 hidden md:block"></div>
           <div className="bg-gray-900/90 dark:bg-black/90 backdrop-blur-md border border-gray-700/50 px-4 py-2 rounded-lg shadow-xl text-xs font-mono w-max transition-colors">
@@ -353,13 +440,6 @@ const HomePage: React.FC = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-8 left-8 z-20 flex flex-col items-center gap-2 hidden lg:flex"
-        >
-          <span className="text-[9px] font-bold tracking-[0.2em] text-gray-400 dark:text-gray-600 rotate-90 origin-left translate-y-20 -translate-x-3 w-max transition-colors">SCROLL TO EXPLORE</span>
-        </motion.div>
       </section>
 
       {/* 8. SMALL SECOND SECTION */}
