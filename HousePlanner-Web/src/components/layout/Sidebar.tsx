@@ -7,7 +7,8 @@ import {
   DollarSign, 
   Building2, 
   Clock, 
-  Users 
+  Users,
+  PlusSquare
 } from 'lucide-react';
 import useAuth from '../../features/auth/useAuth';
 
@@ -19,6 +20,7 @@ export const Sidebar: React.FC = () => {
   // Common links for all users
   const commonLinks = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { to: '/dashboard/new-project', label: 'New Project (Intake)', icon: PlusSquare },
   ];
 
   // Role-specific links
