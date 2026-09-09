@@ -1,15 +1,8 @@
 from langgraph.graph import StateGraph,END
-from app.schemas.workflow_state import WorkflowState
+from app.schemas.workflow_agent import WorkflowState
 from app.agents.coordinator_agent import coordinator_node
-
-#Mock implemetation for the agents
-def land_analysis_node(state:WorkflowState):
-    state.current_agent="design"
-    return state
-
-def design_node(state:WorkflowState):
-    state.current_agent="cost_estimation"
-    return state
+from app.agents.land_analysis_agent import land_analysis_node
+from app.agents.design_agent import design_node
 
 def cost_estimation_node(state:WorkflowState):
     state.current_agent="validation"
