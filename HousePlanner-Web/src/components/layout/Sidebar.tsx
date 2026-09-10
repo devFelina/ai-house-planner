@@ -31,7 +31,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   const contractorLinks = [
-    { to: '#estimates', label: 'Cost Estimator', icon: DollarSign },
+    { to: '/dashboard/cost-estimator', label: 'Cost Estimator', icon: DollarSign },
     { to: '#scheduling', label: 'Project Scheduling', icon: Clock },
     { to: '#subcontractors', label: 'Subcontractors', icon: Users },
   ];
