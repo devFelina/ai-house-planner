@@ -2,7 +2,7 @@ using HousePlanner.API.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HousePlanner.Domain.Entities
+namespace HousePlanner.API.Entities
 {
     [Table("LandSubmissions")]
     public class LandSubmission

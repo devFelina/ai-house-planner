@@ -6,11 +6,14 @@ import ProtectedRoute from './ProtectedRoute';
 import PageContainer from '../components/layout/PageContainer';
 import ApprovalPage from '../pages/ApprovalPage';
 import ProjectTrackingPage from '../pages/ProjectTrackingPage';
+import IntakeForm from '../pages/IntakeForm';
+import HomePage from '../pages/HomePage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
 
       {/* Protected Routes */}
@@ -45,9 +48,19 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/dashboard/new-project"
+        element={
+          <ProtectedRoute>
+            <PageContainer>
+              <IntakeForm/>
+            </PageContainer>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Fallback routing */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

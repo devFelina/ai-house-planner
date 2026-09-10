@@ -9,7 +9,8 @@ import {
   Clock, 
   Users,
   CheckCircle,
-  Activity
+  Activity,
+  PlusSquare
 } from 'lucide-react';
 import useAuth from '../../features/auth/useAuth';
 
@@ -21,6 +22,7 @@ export const Sidebar: React.FC = () => {
   // Common links for all users
   const commonLinks = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { to: '/dashboard/new-project', label: 'New Project (Intake)', icon: PlusSquare },
     { to: '/approval', label: 'Approval', icon: CheckCircle },
     { to: '/project-tracking', label: 'Project Tracking', icon: Activity },
   ];

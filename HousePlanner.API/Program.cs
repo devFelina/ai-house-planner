@@ -3,15 +3,21 @@ using Google.Apis.Auth.OAuth2;
 using HousePlanner.API.Middleware;
 using HousePlanner.API.Services;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using HousePlanner.API.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add PostgreSQL DbContext
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 1. Add CORS services allowing our React frontend client
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -115,6 +121,13 @@ else
 }
 
 var app = builder.Build();
+
+// Auto-create database tables
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.EnsureCreated();
+}
 
 // 6. Register exception-handling middleware early in request pipeline
 app.UseMiddleware<ExceptionHandlingMiddleware>();

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../providers/intake_provider.dart';
 import '../models/land_submission.dart';
 
@@ -47,6 +48,14 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -253,7 +262,9 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.file(photo, height: 160, width: double.infinity, fit: BoxFit.cover),
+          child: kIsWeb 
+              ? Image.network(photo.path, height: 160, width: double.infinity, fit: BoxFit.cover)
+              : Image.file(photo, height: 160, width: double.infinity, fit: BoxFit.cover),
         ),
         Positioned(
           top: 8,
