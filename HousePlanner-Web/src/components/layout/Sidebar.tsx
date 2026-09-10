@@ -7,7 +7,9 @@ import {
   DollarSign, 
   Building2, 
   Clock, 
-  Users 
+  Users,
+  CheckCircle,
+  Activity
 } from 'lucide-react';
 import useAuth from '../../features/auth/useAuth';
 
@@ -19,6 +21,8 @@ export const Sidebar: React.FC = () => {
   // Common links for all users
   const commonLinks = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { to: '/approval', label: 'Approval', icon: CheckCircle },
+    { to: '/project-tracking', label: 'Project Tracking', icon: Activity },
   ];
 
   // Role-specific links
