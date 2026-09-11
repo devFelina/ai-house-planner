@@ -24,6 +24,7 @@ def coordinator_node(state:WorkflowState)->WorkflowState:
             "slope_estimate":"flat",
             "notable_features":[]
         }
+        state.current_agent = next_agent
     else:
         #No manual terrain, route to Land Analysis to process the land photo
         next_agent="land_analysis"
@@ -40,7 +41,7 @@ def coordinator_node(state:WorkflowState)->WorkflowState:
                 "Result":"success"
             }
             requests.patch(
-                f"http://aspnet-api:8080/api/v1/internal/workflows/{state.workflow_id}/state",
+                f"http://localhost:5265/api/v1/internal/workflows/{state.workflow_id}/state",
                 json=update_payload,
                 headers=headers,
                 timeout=5
@@ -48,4 +49,5 @@ def coordinator_node(state:WorkflowState)->WorkflowState:
 
         except Exception as e:
             print(f"Failed to callback ASP.NET Core:{e}")
-        return state
+    
+    return state
