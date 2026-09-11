@@ -109,7 +109,7 @@ def _call_gemini_vision(client, photo_url: str, prompt: str) -> str:
     from google.genai import types
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-3.6-flash",
         contents=[
             types.Content(
                 parts=[
@@ -130,11 +130,11 @@ def _parse_terrain_result(text: str) -> TerrainResult | None:
     """
     Parse raw LLM text into a validated TerrainResult.
     Handles common issues like markdown code blocks around JSON.
+    Invalid terrain or slope values fail closed instead of being silently accepted.
     """
     # Strip markdown code block wrappers if present
     cleaned = text.strip()
     if cleaned.startswith("```"):
-        # Remove ```json ... ``` wrapper
         lines = cleaned.split("\n")
         cleaned = "\n".join(
             line for line in lines
@@ -143,6 +143,14 @@ def _parse_terrain_result(text: str) -> TerrainResult | None:
 
     try:
         data = json.loads(cleaned)
+        if not isinstance(data, dict):
+            return None
+        if data.get("terrain_type") not in {"flat", "hillside", "coastal"}:
+            print(f"[Vision Tool] Invalid terrain type rejected: {data.get('terrain_type')}")
+            return None
+        if data.get("slope_estimate") not in {"flat", "gentle", "moderate", "steep", "unknown"}:
+            print(f"[Vision Tool] Invalid slope rejected: {data.get('slope_estimate')}")
+            return None
         return TerrainResult(**data)
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         print(f"[Vision Tool] Parse error: {e}")

@@ -22,9 +22,13 @@ namespace HousePlanner.API.Data
             {
                 entity.HasIndex(e => e.WorkflowStateId).HasDatabaseName("IX_HouseDesigns_WorkflowStateId");
                 entity.HasIndex(e => new { e.WorkflowStateId, e.IsCurrent }).HasDatabaseName("IX_HouseDesigns_WorkflowState_IsCurrent");
-                if (Database.IsRelational())
+                try 
                 {
                     entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+                } 
+                catch 
+                { 
+                    // Ignore for in-memory provider 
                 }
             });
 

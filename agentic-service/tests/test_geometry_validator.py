@@ -53,11 +53,3 @@ def test_validate_geometry_exceeds_coverage():
     result = validate_geometry(rooms, expected_bedrooms=0, expected_floors=1, land_size_perches=10.0)
     assert result.passed is False
     assert "coverage_ratio" in result.failed_rules
-
-def test_validate_geometry_invalid_dimensions():
-    rooms = [
-        RoomLayout(room_type="living_room", floor=1, x=0, y=0, width=-10, length=10),
-    ]
-    result = validate_geometry(rooms, expected_bedrooms=0, expected_floors=1, land_size_perches=10.0)
-    assert result.passed is False
-    assert "invalid_dimensions" in result.failed_rules

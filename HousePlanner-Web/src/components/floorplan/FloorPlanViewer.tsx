@@ -87,17 +87,16 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
   return (
     <div
       style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
         width: '100%',
         height: '100%',
         backgroundColor: '#f8f9fa',
         overflow: 'auto',
         padding: '20px',
+        display: 'flex',
       }}
     >
-      <svg
+      <div style={{ margin: 'auto', width: 'fit-content', height: 'fit-content' }}>
+        <svg
         width={totalWidth + padding * 2}
         height={totalHeight + padding * 2}
         style={{
@@ -146,10 +145,10 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
                 />
 
                 {/* Windows (light blue gaps) */}
-                {room.windows.map((win, i) => renderOpening(win, room, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'window', i))}
+                {room.windows.map((win, i) => renderOpening(win, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'window', i))}
 
                 {/* Doors (white gaps) */}
-                {room.doors.map((door, i) => renderOpening(door, room, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'door', i))}
+                {room.doors.map((door, i) => renderOpening(door, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'door', i))}
 
                 {/* Room Label */}
                 <text
@@ -195,6 +194,7 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
           })}
         </g>
       </svg>
+      </div>
     </div>
   );
 };
@@ -202,7 +202,6 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
 // Helper function to render a door or window opening
 function renderOpening(
   opening: Opening,
-  room: Room,
   svgX: number,
   svgY: number,
   svgWidth: number,

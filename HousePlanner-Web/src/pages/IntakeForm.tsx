@@ -91,30 +91,39 @@ const IntakeForm: React.FC = () => {
 
   if (isSuccess && workflowId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-green-500 mb-4">
-          <CheckCircle2 size={64} />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-2xl mx-auto">
+        <motion.div 
+          initial={{ scale: 0, rotate: -180 }} 
+          animate={{ scale: 1, rotate: 0 }} 
+          transition={{ type: "spring", bounce: 0.5 }}
+          className="text-emerald-500 mb-6 bg-emerald-50 p-4 rounded-full shadow-inner"
+        >
+          <CheckCircle2 size={64} className="drop-shadow-sm" />
         </motion.div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">AI Plan Generated!</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
-          The AI Architect has processed your requirements and generated a 2D structural floor plan.
+        <h2 className="text-3xl font-extrabold text-zinc-900 mb-3 tracking-tight">AI Plan Generated!</h2>
+        <p className="text-zinc-500 mb-8 text-lg font-medium">
+          The AI Architect has processed your requirements and successfully generated a 2D structural floor plan.
         </p>
         <button 
           onClick={() => navigate(`/dashboard/workflows/${workflowId}`)}
-          className="px-6 py-3 bg-indigo-600 text-white font-bold tracking-wide rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30"
+          className="group relative flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold tracking-wide rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-[0_4px_14px_0_rgb(79,70,229,0.39)] overflow-hidden"
         >
-          Review Floor Plan
+          <div className="absolute inset-0 w-1/4 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shine"></div>
+          <span>Review Floor Plan</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-2xl custom-shadow-md border border-gray-100 dark:border-gray-800">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Home Project Setup</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Component A: Provide your budget and land details to initialize the AI planner.
+    <div className="max-w-3xl mx-auto p-8 sm:p-10 bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 relative overflow-hidden">
+      {/* Decorative background blur inside the card */}
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-100/50 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+      
+      <div className="mb-10 relative z-10 text-center">
+        <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight mb-2">New Project Setup</h1>
+        <p className="text-base text-zinc-500 font-medium">
+          Provide your land details and requirements to initialize the AI planner.
         </p>
       </div>
 
@@ -127,9 +136,10 @@ const IntakeForm: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Section 1: Financials & Land */}
-        <div className="p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl space-y-4">
-          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <DollarSign size={18} className="text-indigo-500" /> Budget & Land Constraints
+        <div className="p-6 bg-zinc-50/80 rounded-2xl border border-zinc-100/80 space-y-5 relative z-10 hover:shadow-sm transition-shadow">
+          <h3 className="font-bold text-zinc-900 flex items-center gap-2.5 text-lg">
+            <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600"><DollarSign size={18} /></div> 
+            Budget & Land Constraints
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,9 +186,10 @@ const IntakeForm: React.FC = () => {
         </div>
 
         {/* Section 2: Terrain & Upload */}
-        <div className="p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl space-y-4">
-          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Map size={18} className="text-green-500" /> Terrain & Topography
+        <div className="p-6 bg-zinc-50/80 rounded-2xl border border-zinc-100/80 space-y-5 relative z-10 hover:shadow-sm transition-shadow">
+          <h3 className="font-bold text-zinc-900 flex items-center gap-2.5 text-lg">
+            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><Map size={18} /></div>
+            Terrain & Topography
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -216,9 +227,10 @@ const IntakeForm: React.FC = () => {
         </div>
 
         {/* Section 3: Design Preferences */}
-        <div className="p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl space-y-4">
-          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Home size={18} className="text-purple-500" /> Design Preferences
+        <div className="p-6 bg-zinc-50/80 rounded-2xl border border-zinc-100/80 space-y-5 relative z-10 hover:shadow-sm transition-shadow">
+          <h3 className="font-bold text-zinc-900 flex items-center gap-2.5 text-lg">
+            <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><Home size={18} /></div>
+            Design Preferences
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -264,18 +276,20 @@ const IntakeForm: React.FC = () => {
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-6 relative z-10">
           <button 
             type="submit" 
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition shadow-lg shadow-indigo-200 dark:shadow-none disabled:opacity-70 disabled:cursor-not-allowed"
+            className="group relative flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-2xl transition-all shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] overflow-hidden disabled:opacity-70 disabled:cursor-not-allowed"
           >
+            <div className="absolute inset-0 w-1/4 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shine"></div>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
-                <Layers className="animate-spin" size={18} /> Processing...
+                <Layers className="animate-spin text-indigo-400" size={20} /> 
+                <span className="tracking-wide">Processing Details...</span>
               </span>
             ) : (
-              "Generate AI Plan"
+              <span className="tracking-wide">Generate AI Plan</span>
             )}
           </button>
         </div>
