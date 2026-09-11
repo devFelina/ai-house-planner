@@ -2,10 +2,13 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { AuthState, UserProfile } from '../../types/auth.types';
 import authService from './authService';
 
+const savedUser = localStorage.getItem('mockUser');
+const savedToken = localStorage.getItem('mockToken');
+
 const initialState: AuthState = {
-  user: null,
-  token: null,
-  status: 'idle',
+  user: savedUser ? JSON.parse(savedUser) : null,
+  token: savedToken || null,
+  status: savedUser ? 'succeeded' : 'idle',
   error: null,
 };
 
@@ -59,6 +62,18 @@ export const logoutAsync = createAsyncThunk('auth/logout', async (_, { rejectWit
   }
 });
 
+// Async Thunk for Initial Session Verification
+export const verifySessionAsync = createAsyncThunk(
+  'auth/verifySession',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await authService.verifySession();
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Session verification failed');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -68,12 +83,16 @@ const authSlice = createSlice({
       state.token = null;
       state.status = 'idle';
       state.error = null;
+      localStorage.removeItem('mockUser');
+      localStorage.removeItem('mockToken');
     },
     setMockAuth: (state, action: PayloadAction<UserProfile>) => {
       state.user = action.payload;
       state.token = 'mock_token';
       state.status = 'succeeded';
       state.error = null;
+      localStorage.setItem('mockUser', JSON.stringify(action.payload));
+      localStorage.setItem('mockToken', 'mock_token');
     },
   },
   extraReducers: (builder) => {
@@ -99,6 +118,24 @@ const authSlice = createSlice({
         state.token = null;
         state.status = 'idle';
         state.error = null;
+        localStorage.removeItem('mockUser');
+        localStorage.removeItem('mockToken');
+      })
+      // Session Verification
+      .addCase(verifySessionAsync.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(verifySessionAsync.fulfilled, (state, action: PayloadAction<{ user: UserProfile; token: string }>) => {
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.error = null;
+      })
+      .addCase(verifySessionAsync.rejected, (state, action) => {
+        state.status = 'failed';
+        // We do not set error state here as a failed session verify just means the user isn't logged in.
+        state.user = null;
+        state.token = null;
       });
   },
 });
