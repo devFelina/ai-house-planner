@@ -1,14 +1,11 @@
 from langgraph.graph import StateGraph,END
 from app.schemas.workflow_state import WorkflowState
 from app.agents.coordinator_agent import coordinator_node
+from app.agents.design_agent import design_node
 
 #Mock implemetation for the agents
 def land_analysis_node(state:WorkflowState):
     state.current_agent="design"
-    return state
-
-def design_node(state:WorkflowState):
-    state.current_agent="cost_estimation"
     return state
 
 def cost_estimation_node(state:WorkflowState):
@@ -48,9 +45,9 @@ workflow.add_conditional_edges(
 )
 
 workflow.add_edge("land_analysis","design")
-workflow.add_edge("land_analysis","cost_estimation")
+workflow.add_edge("design","cost_estimation")
 workflow.add_edge("cost_estimation","validation")
 workflow.add_edge("validation",END)
 
-app_graph=workflow.compile
+app_graph=workflow.compile()
 

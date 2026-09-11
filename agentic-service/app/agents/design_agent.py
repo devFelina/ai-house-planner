@@ -1,13 +1,13 @@
 import uuid
 import json
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI 
+from langchain_google_genai import ChatGoogleGenerativeAI
 from app.schemas.workflow_state import WorkflowState
 from app.schemas.design_result import DesignResult
 
 # Initialize the LLM 
 # Using a model that heavily supports structured output is highly recommended.
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.2)
 
 def design_node(state: WorkflowState) -> WorkflowState:
     print(f"[Design Agent] Generating architectural layout for workflow {state.workflow_id}...")
@@ -93,6 +93,22 @@ def design_node(state: WorkflowState) -> WorkflowState:
             "result": "success",
             "created_at_utc": "now"
         })
+        
+        # Send the updated state back to ASP.NET Core
+        try:
+            import requests
+            headers={"X-Internal-API-Key":"shared-internal-secret"}
+            update_payload={
+                "DesignResult": state.design_result
+            }
+            requests.patch(
+                f"http://localhost:5265/api/v1/internal/workflows/{state.workflow_id}/state",
+                json=update_payload,
+                headers=headers,
+                timeout=5
+            )
+        except Exception as e:
+            print(f"Failed to save design result to ASP.NET Core: {e}")
         
     except Exception as e:
         print(f"Error in Design Agent: {e}")
