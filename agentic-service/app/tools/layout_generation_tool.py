@@ -31,79 +31,93 @@ def select_template(bedrooms: int, floors: int, terrain_type: str, land_size_per
         normalized_terrain = "flat"
 
     registry = {
+        # ----------------------------------------------------------------
+        # 3 Bedroom, 2 Floor, Flat terrain
+        # Bottom row: public zone. Top row: private zone.
+        # Every room shares at least one wall with a neighbour.
+        # ----------------------------------------------------------------
         "3BR_2F_FLAT": {
             "template_id": "3BR_2F_FLAT",
-            "max_width": 36,
-            "max_length": 30,
+            "max_width": 35,
+            "max_length": 26,
             "layout": {
-                "living_room": {"x": 0, "y": 0, "width": 16, "length": 16},
-                "kitchen": {"x": 16, "y": 0, "width": 10, "length": 12},
-                "bathroom": {"x": 0, "y": 16, "width": 8, "length": 8},
-                "bedroom_1": {"x": 26, "y": 0, "width": 10, "length": 12},
-                "bedroom_2": {"x": 26, "y": 12, "width": 10, "length": 12},
-                "bedroom_3": {"x": 8, "y": 16, "width": 12, "length": 10},
+                "living_room": {"x": 0, "y": 0, "width": 15, "length": 14},
+                "kitchen":     {"x": 15, "y": 0, "width": 10, "length": 14},
+                "bedroom_1":   {"x": 25, "y": 0, "width": 10, "length": 14},
+                "bathroom":    {"x": 0, "y": 14, "width": 8, "length": 8},
+                "bedroom_2":   {"x": 8, "y": 14, "width": 10, "length": 12},
+                "bedroom_3":   {"x": 18, "y": 14, "width": 10, "length": 12},
             },
             "dimension_ranges": {
-                "living_room": {"width": [12, 18], "length": [12, 18]},
-                "kitchen": {"width": [8, 12], "length": [8, 14]},
+                "living_room": {"width": [12, 18], "length": [12, 16]},
+                "kitchen": {"width": [8, 12], "length": [10, 14]},
                 "bathroom": {"width": [6, 10], "length": [6, 10]},
                 "bedroom": {"width": [9, 12], "length": [10, 14]},
             },
         },
+        # ----------------------------------------------------------------
+        # 3 Bedroom, 2 Floor, Hillside terrain — compact for stepped foundation
+        # ----------------------------------------------------------------
         "3BR_2F_HILLSIDE": {
             "template_id": "3BR_2F_HILLSIDE",
-            "max_width": 38,
-            "max_length": 32,
+            "max_width": 34,
+            "max_length": 26,
             "layout": {
-                "living_room": {"x": 0, "y": 0, "width": 16, "length": 16},
-                "kitchen": {"x": 16, "y": 0, "width": 10, "length": 12},
-                "bathroom": {"x": 0, "y": 16, "width": 8, "length": 8},
-                "bedroom_1": {"x": 24, "y": 0, "width": 12, "length": 12},
-                "bedroom_2": {"x": 24, "y": 12, "width": 12, "length": 12},
-                "bedroom_3": {"x": 8, "y": 18, "width": 12, "length": 10},
+                "living_room": {"x": 0, "y": 0, "width": 14, "length": 14},
+                "kitchen":     {"x": 14, "y": 0, "width": 10, "length": 14},
+                "bedroom_1":   {"x": 24, "y": 0, "width": 10, "length": 14},
+                "bathroom":    {"x": 0, "y": 14, "width": 8, "length": 8},
+                "bedroom_2":   {"x": 8, "y": 14, "width": 10, "length": 12},
+                "bedroom_3":   {"x": 18, "y": 14, "width": 10, "length": 12},
             },
             "dimension_ranges": {
-                "living_room": {"width": [12, 18], "length": [12, 18]},
-                "kitchen": {"width": [8, 12], "length": [8, 14]},
+                "living_room": {"width": [12, 16], "length": [12, 16]},
+                "kitchen": {"width": [8, 12], "length": [10, 14]},
                 "bathroom": {"width": [6, 10], "length": [6, 10]},
-                "bedroom": {"width": [9, 14], "length": [10, 14]},
+                "bedroom": {"width": [9, 12], "length": [10, 14]},
             },
         },
+        # ----------------------------------------------------------------
+        # 4 Bedroom, 2 Floor, Coastal terrain — compact for raised foundation
+        # ----------------------------------------------------------------
         "4BR_2F_COASTAL": {
             "template_id": "4BR_2F_COASTAL",
-            "max_width": 40,
-            "max_length": 34,
+            "max_width": 38,
+            "max_length": 26,
             "layout": {
-                "living_room": {"x": 0, "y": 0, "width": 17, "length": 16},
-                "kitchen": {"x": 17, "y": 0, "width": 11, "length": 12},
-                "bathroom": {"x": 0, "y": 16, "width": 8, "length": 8},
-                "bedroom_1": {"x": 25, "y": 0, "width": 12, "length": 12},
-                "bedroom_2": {"x": 25, "y": 12, "width": 12, "length": 12},
-                "bedroom_3": {"x": 8, "y": 18, "width": 10, "length": 10},
-                "bedroom_4": {"x": 18, "y": 18, "width": 10, "length": 10},
+                "living_room": {"x": 0, "y": 0, "width": 16, "length": 14},
+                "kitchen":     {"x": 16, "y": 0, "width": 10, "length": 14},
+                "bedroom_1":   {"x": 26, "y": 0, "width": 10, "length": 14},
+                "bathroom":    {"x": 0, "y": 14, "width": 8, "length": 8},
+                "bedroom_2":   {"x": 8, "y": 14, "width": 10, "length": 12},
+                "bedroom_3":   {"x": 18, "y": 14, "width": 10, "length": 12},
+                "bedroom_4":   {"x": 28, "y": 14, "width": 10, "length": 12},
             },
             "dimension_ranges": {
-                "living_room": {"width": [14, 18], "length": [12, 18]},
-                "kitchen": {"width": [9, 12], "length": [9, 13]},
+                "living_room": {"width": [14, 18], "length": [12, 16]},
+                "kitchen": {"width": [8, 12], "length": [10, 14]},
                 "bathroom": {"width": [6, 10], "length": [6, 10]},
-                "bedroom": {"width": [9, 14], "length": [10, 14]},
+                "bedroom": {"width": [9, 12], "length": [10, 14]},
             },
         },
+        # ----------------------------------------------------------------
+        # 3 Bedroom, 1 Floor, Flat terrain — single story
+        # ----------------------------------------------------------------
         "3BR_1F_FLAT": {
             "template_id": "3BR_1F_FLAT",
-            "max_width": 34,
-            "max_length": 28,
+            "max_width": 35,
+            "max_length": 26,
             "layout": {
-                "living_room": {"x": 0, "y": 0, "width": 15, "length": 16},
-                "kitchen": {"x": 15, "y": 0, "width": 10, "length": 12},
-                "bathroom": {"x": 0, "y": 16, "width": 8, "length": 8},
-                "bedroom_1": {"x": 25, "y": 0, "width": 9, "length": 12},
-                "bedroom_2": {"x": 25, "y": 12, "width": 9, "length": 12},
-                "bedroom_3": {"x": 8, "y": 18, "width": 10, "length": 10},
+                "living_room": {"x": 0, "y": 0, "width": 14, "length": 14},
+                "kitchen":     {"x": 14, "y": 0, "width": 10, "length": 14},
+                "bedroom_1":   {"x": 24, "y": 0, "width": 10, "length": 14},
+                "bathroom":    {"x": 0, "y": 14, "width": 8, "length": 8},
+                "bedroom_2":   {"x": 8, "y": 14, "width": 10, "length": 12},
+                "bedroom_3":   {"x": 18, "y": 14, "width": 10, "length": 12},
             },
             "dimension_ranges": {
-                "living_room": {"width": [12, 16], "length": [12, 18]},
-                "kitchen": {"width": [8, 12], "length": [8, 14]},
+                "living_room": {"width": [12, 16], "length": [12, 16]},
+                "kitchen": {"width": [8, 12], "length": [10, 14]},
                 "bathroom": {"width": [6, 10], "length": [6, 10]},
                 "bedroom": {"width": [8, 12], "length": [10, 14]},
             },
@@ -118,20 +132,21 @@ def select_template(bedrooms: int, floors: int, terrain_type: str, land_size_per
     if generic_key in registry:
         return registry[generic_key]
 
+    # Fallback — same tight two-row layout pattern
     return {
         "template_id": f"{bedrooms}BR_{floors}F_{normalized_terrain.upper()}",
-        "max_width": 36,
-        "max_length": 32,
+        "max_width": 35,
+        "max_length": 26,
         "layout": {
-            "living_room": {"x": 0, "y": 0, "width": 15, "length": 16},
-            "kitchen": {"x": 15, "y": 0, "width": 10, "length": 12},
-            "bathroom": {"x": 0, "y": 16, "width": 8, "length": 8},
+            "living_room": {"x": 0, "y": 0, "width": 15, "length": 14},
+            "kitchen":     {"x": 15, "y": 0, "width": 10, "length": 14},
+            "bathroom":    {"x": 0, "y": 14, "width": 8, "length": 8},
         },
         "dimension_ranges": {
-            "living_room": {"width": [12, 18], "length": [12, 18]},
-            "kitchen": {"width": [8, 12], "length": [8, 14]},
+            "living_room": {"width": [12, 18], "length": [12, 16]},
+            "kitchen": {"width": [8, 12], "length": [10, 14]},
             "bathroom": {"width": [6, 10], "length": [6, 10]},
-            "bedroom": {"width": [9, 14], "length": [10, 14]},
+            "bedroom": {"width": [9, 12], "length": [10, 14]},
         },
     }
 
@@ -301,15 +316,37 @@ Rooms on the SAME FLOOR:
 * MAY share walls
 * MAY touch at their boundaries
 
-For example, this is valid:
+CRITICAL ADJACENCY RULE:
 
-Room A:
-x = 0, width = 10
+Every room MUST share at least one full wall edge with at least one other room on the same floor.
 
-Room B:
-x = 10, width = 10
+A wall is shared when one room's edge exactly meets another room's edge along the same axis.
 
-because the rooms share a wall.
+For example, this is valid wall sharing:
+
+Room A: x=0, y=0, width=15, length=14
+Room B: x=15, y=0, width=10, length=14
+
+Room A's right edge (x=15) meets Room B's left edge (x=15). They share a wall.
+
+Room C: x=0, y=14, width=8, length=8
+
+Room C's bottom edge (y=14) meets Room A's top edge (y=0+14=14). They share a wall.
+
+This is INVALID (scattered rooms with gaps):
+
+Room A: x=0, y=0, width=15, length=16
+Room B: x=25, y=5, width=10, length=12
+
+There is a 10 ft gap between them. This is NOT a real house.
+
+The rooms must tile together to form a single connected building footprint with no empty gaps between rooms. Use a two-row grid pattern:
+
+* Bottom row: public rooms (living room, kitchen) placed side by side sharing walls at their x boundaries, all starting at y=0 with the same length.
+* Top row: private rooms (bedrooms, bathroom) placed side by side sharing walls at their x boundaries, starting at y = bottom row length.
+* The bottom row and top row share a horizontal wall where they meet.
+
+This produces a compact rectangular or L-shaped building.
 
 ## 7. BUILDING BOUNDARY
 
@@ -330,7 +367,7 @@ Do NOT place rooms outside these boundaries.
 
 Prefer a compact rectangular or L-shaped building footprint.
 
-Avoid scattered rooms.
+Avoid scattered rooms. NO GAPS between rooms.
 
 ## 8. ROOM DIMENSIONS
 
@@ -529,30 +566,35 @@ SELECTED TEMPLATE:
 * Maximum building width: {template['max_width']} ft
 * Maximum building length: {template['max_length']} ft
 
-STARTING TEMPLATE LAYOUT:
-{json.dumps(template['layout'])}
+STARTING TEMPLATE LAYOUT (use these exact positions as a starting point):
+{json.dumps(template['layout'], indent=2)}
 
 ALLOWED ROOM DIMENSION RANGES:
-{json.dumps(template['dimension_ranges'])}
+{json.dumps(template['dimension_ranges'], indent=2)}
 
-INSTRUCTIONS:
+CRITICAL LAYOUT RULES:
 
-1. Use the selected template as the primary layout structure.
-2. Adapt room dimensions and positions only when necessary.
-3. Keep every room within the template maximum width and length.
-4. Generate exactly {bedrooms} bedrooms across all floors combined.
-5. Generate exactly {floors} floors.
-6. Include at least one living room, one kitchen and one bathroom.
-7. Rooms on the same floor must never overlap.
-8. Rooms may share walls.
-9. Keep the total room area at or below {max_area} sqft.
-10. Keep the layout compact and practical.
-11. Keep bedrooms reasonably private from living areas.
-12. Keep the kitchen close to the living room.
-13. If a previous design and revision reason are provided, fix the stated problem while preserving the valid requirements.
-14. Return ONLY the required JSON structure.
+1. Use the template layout above as-is or with MINIMAL adjustments.
+2. Every room MUST share at least one full wall with another room. NO isolated rooms. NO gaps between rooms.
+3. Place rooms in a two-row grid:
+   - Bottom row (y=0): public rooms (living room, kitchen, optionally one bedroom) side by side, all with the SAME length (height).
+   - Top row (y=bottom row length): private rooms (bedrooms, bathroom) side by side, all with the SAME length (height).
+4. Adjacent rooms in the same row must share a vertical wall: Room A ends at x=N, Room B starts at x=N.
+5. The top row and bottom row share a horizontal wall where they meet at y = bottom row length.
+6. Generate exactly {bedrooms} bedrooms named bedroom_1 through bedroom_{bedrooms}.
+7. Generate exactly {floors} floor(s).
+8. Include at least one living_room, one kitchen, and one bathroom.
+9. Rooms on the same floor MUST NOT overlap.
+10. Keep the total room area at or below {max_area} sqft.
+11. Keep every room within bounds: x + width <= {template['max_width']} and y + length <= {template['max_length']}.
+12. Return ONLY the required JSON structure. No markdown, no explanation.
 
-Before returning the JSON, verify all geometry constraints internally.
+Before returning the JSON, verify:
+- All rooms share walls (no gaps).
+- No rooms overlap.
+- All rooms are inside the template bounds.
+- Exactly {bedrooms} bedrooms exist.
+- Total area <= {max_area}.
 """
     if previous_design and revision_reason:
         user_prompt += f"""
