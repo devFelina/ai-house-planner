@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from uuid import UUID,uuid4
 from typing import Optional,Dict,Any
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from app.schemas.workflow_state import WorkflowState, CoordinatorInput
 from app.workflows.house_planning_graph import app_graph
 
