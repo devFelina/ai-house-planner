@@ -46,23 +46,35 @@ const IntakeForm: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Create prompt from form data for the backend AI Coordinator
-      const promptStr = `Budget: ${formData.budget} LKR, Land Size: ${formData.landSize} ${formData.landUnit}, Terrain: ${formData.terrainType}. Requirements: ${formData.bedrooms} bedrooms, ${formData.floors} floors, ${formData.architecturalStyle} style.`;
+      const payload = {
+        budgetLkr: parseFloat(formData.budget),
+        landSizePerches: parseFloat(formData.landSize),
+        manualTerrainType: formData.terrainType,
+        preferences: {
+          bedrooms: parseInt(formData.bedrooms),
+          floors: parseInt(formData.floors),
+          architecturalStyle: formData.architecturalStyle,
+          landUnit: formData.landUnit,
+        }
+      };
 
       // Call your ASP.NET Core Backend
       // Replace localhost:5000 with your actual backend URL if it differs
-      const response = await fetch('http://localhost:5000/api/AiGeneration/generate', {
+      const response = await fetch('http://localhost:5265/api/AiGeneration/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          prompt: promptStr
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to connect to the backend server.');
+        let errorMsg = 'Failed to connect to the backend server.';
+        try {
+          const errData = await response.json();
+          errorMsg = errData.message || errData.Message || errorMsg;
+        } catch(e) {}
+        throw new Error(errorMsg);
       }
 
       const result = await response.json();
