@@ -513,31 +513,61 @@ def generate_layout(
     template = select_template(bedrooms, floors, terrain_type, land_size_perches)
     template_id = template["template_id"]
 
-    user_prompt = f"""Generate a floor plan for this project:
+    user_prompt = f"""Generate the conceptual house floor plan using the selected bounded template.
 
-bedrooms: {bedrooms}
-floors: {floors}
-land_size_perches: {land_size_perches}
-terrain_type: {terrain_type}
-max_buildable_area_sqft: {max_area}
-selected_template: {template_id}
-template_bounds: max_width={template['max_width']}, max_length={template['max_length']}
-template_layout: {json.dumps(template['layout'])}
-dimension_ranges: {json.dumps(template['dimension_ranges'])}
+PROJECT REQUIREMENTS:
 
-Use the template layout as the starting concept and adapt room dimensions and placement within the allowed ranges.
-Keep all rooms within the template bounds: x + width <= {template['max_width']} and y + length <= {template['max_length']}.
-Generate exactly {bedrooms} bedrooms named bedroom_1 through bedroom_{bedrooms}.
+* Bedrooms: {bedrooms}
+* Floors: {floors}
+* Terrain: {terrain_type}
+* Land size: {land_size_perches} perches
+* Maximum buildable area: {max_area} sqft
+
+SELECTED TEMPLATE:
+
+* Template ID: {template_id}
+* Maximum building width: {template['max_width']} ft
+* Maximum building length: {template['max_length']} ft
+
+STARTING TEMPLATE LAYOUT:
+{json.dumps(template['layout'])}
+
+ALLOWED ROOM DIMENSION RANGES:
+{json.dumps(template['dimension_ranges'])}
+
+INSTRUCTIONS:
+
+1. Use the selected template as the primary layout structure.
+2. Adapt room dimensions and positions only when necessary.
+3. Keep every room within the template maximum width and length.
+4. Generate exactly {bedrooms} bedrooms across all floors combined.
+5. Generate exactly {floors} floors.
+6. Include at least one living room, one kitchen and one bathroom.
+7. Rooms on the same floor must never overlap.
+8. Rooms may share walls.
+9. Keep the total room area at or below {max_area} sqft.
+10. Keep the layout compact and practical.
+11. Keep bedrooms reasonably private from living areas.
+12. Keep the kitchen close to the living room.
+13. If a previous design and revision reason are provided, fix the stated problem while preserving the valid requirements.
+14. Return ONLY the required JSON structure.
+
+Before returning the JSON, verify all geometry constraints internally.
 """
     if previous_design and revision_reason:
         user_prompt += f"""
 DESIGN REVISION REQUIRED:
-Previous design failed validation.
-Reason: {revision_reason}
-Previous layout: {json.dumps(previous_design.get('rooms', []) if isinstance(previous_design, dict) else [])}
 
-Fix the specific problem. Do NOT repeat the same geometry error.
+The previous design failed validation.
+
+Reason: {revision_reason}
+
+Previous layout:
+{json.dumps(previous_design.get('rooms', []) if isinstance(previous_design, dict) else [])}
+
+Fix the specific problem stated above. Do NOT repeat the same geometry error.
 Stay within the template bounds and satisfy all original requirements.
+Return a corrected JSON layout.
 """
 
     # Loop up to 3 times to satisfy the geometry validator
