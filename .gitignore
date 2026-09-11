@@ -16,6 +16,7 @@ pnpm-debug.log*
 **/firebase-service-account.json
 *.pem
 *.key
+HousePlanner.API/appsettings.json
 
 # .NET build output and local data
 HousePlanner.API/bin/
@@ -30,3 +31,8 @@ HousePlanner.API/App_Data/
 *.user
 *.userosscache
 *.sln.docstates
+
+# Python generated files
+**/__pycache__/
+*.py[cod]
+.pytest_cache/

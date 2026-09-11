@@ -1,7 +1,7 @@
 import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Html, useGLTF } from '@react-three/drei';
+import { OrbitControls, Environment, Html } from '@react-three/drei';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Mic, ArrowRight, Sparkles, Box, Moon, Sun, ChevronRight, ChevronLeft } from 'lucide-react';
 import * as THREE from 'three';
@@ -154,34 +154,6 @@ const ProceduralHouse = () => {
 
     </group>
   );
-};
-
-const ExternalHouseModel = ({ url }: { url: string }) => {
-  const { scene } = useGLTF(url);
-  const groupRef = useRef<THREE.Group>(null);
-  
-  useEffect(() => {
-    scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        if (child.material) {
-          if (child.material.name.toLowerCase().includes('glass')) {
-            child.material.transparent = true;
-            child.material.opacity = 0.4;
-            child.material.roughness = 0;
-            child.material.metalness = 1;
-            child.material.envMapIntensity = 2;
-          } else if (child.material.name.toLowerCase().includes('concrete') || child.material.name.toLowerCase().includes('wall')) {
-            child.material.roughness = 0.9;
-            child.material.metalness = 0.1;
-          }
-        }
-      }
-    });
-  }, [scene]);
-
-  return <primitive ref={groupRef} object={scene} position={[0, -1, 0]} scale={1} />;
 };
 
 const HouseScene = ({ isDark }: { isDark: boolean }) => {
