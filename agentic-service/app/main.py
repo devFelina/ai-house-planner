@@ -1,16 +1,22 @@
-from fastapi import FastAPI,HTTPException,Security,BackgroundTasks
+from fastapi import FastAPI, HTTPException, Security, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel 
-from uuid import UUID,uuid4
-from typing import Optional,Dict,Any
+from uuid import UUID, uuid4
+from typing import Optional, Dict, Any
 
-from dotenv import load_dotenv
-load_dotenv()
-
-from app.schemas.workflow_state import WorkflowState, CoordinatorInput
+from app.schemas.workflow_agent import WorkflowState, CoordinatorInput
 from app.workflows.house_planning_graph import app_graph
 
-app=FastAPI(title="Agentic AI Service - House Planner")
+app = FastAPI(title="Agentic AI Service - House Planner")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allow React app
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 #Internal auth mechanism where ASP.NET can call this API
 api_key_header=APIKeyHeader(name="X-Internal-API-Key")
@@ -58,21 +64,3 @@ def start_workflow(
         "workflow_id":str(workflow_id)
     }
 
-class ResumeWorkflowRequest(BaseModel):
-    workflow_id: UUID
-    resume_from: str
-    user_revision_prompt: str
-    
-@app.post("/workflows/resume")
-def resume_workflow(request: ResumeWorkflowRequest, background_tasks: BackgroundTasks):
-    # 1. Fetch the existing state from PostgreSQL (via ASP.NET Core or direct DB if configured)
-    state = get_state_from_db(request.workflow_id)
-    
-    # 2. Inject the user's chat prompt
-    state.user_revision_prompt = request.user_revision_prompt
-    # state.current_agent = request.resume_from
-    
-    # 3. Resume the graph in the background
-    background_tasks.add_task(app_graph.invoke, state)
-    
-    return {"message": "Resuming workflow with new chat prompt"}

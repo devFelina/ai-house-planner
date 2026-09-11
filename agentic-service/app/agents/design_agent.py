@@ -1,117 +1,115 @@
-import uuid
-import json
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from app.schemas.workflow_state import WorkflowState
-from app.schemas.design_result import DesignResult
+"""
+Design Agent — LangGraph node.
 
-# Initialize the LLM 
-# Using a model that heavily supports structured output is highly recommended.
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.2)
+Generates structured house layouts using deterministic templates and
+submits them to ASP.NET Core for persistence. Supports both initial
+generation and revision after validation failure.
+"""
+import requests
+import os
+from app.schemas.workflow_agent import WorkflowState, ExecutionLogEntry
+from app.tools.layout_generation_tool import generate_layout
+from app.tools.geometry_validator import validate_geometry
+from app.config import ASPNET_API_URL, INTERNAL_API_KEY
+from datetime import datetime, timezone
+
 
 def design_node(state: WorkflowState) -> WorkflowState:
-    print(f"[Design Agent] Generating architectural layout for workflow {state.workflow_id}...")
-    
-    # 1. Gather constraints from previous agents/inputs
-    budget = state.input_data.budget_lkr
-    land_size = state.input_data.land_size_perches
-    preferences = state.input_data.preferences
-    
-    # Terrain comes from Land Analysis Agent (or manual input)
-    terrain = state.terrain_result.get("terrain_type", "flat") if state.terrain_result else "flat"
-    
-    # 2. Build the System Prompt
-    system_message = """
-    You are an expert architectural layout generator.
-    Your job is to generate a realistic 2D floor plan layout in strict JSON format.
-    
-    Constraints:
-    - Land Size: {land_size} perches (1 perch = 272.25 sqft). DO NOT exceed 65% coverage ratio.
-    - Terrain: {terrain}. If 'hillside', foundation must be 'terraced'. If 'flat', use 'slab'.
-    - Required Bedrooms: {bedrooms}
-    - Required Floors: {floors}
-    - Style: {style}
-    
-    Coordinate System:
-    - x, y represents the bottom-left corner of the room in a shared 2D grid (feet).
-    - Rooms must not overlap.
     """
-    
-    # 3. Handle iterative chat-based revisions
-    # If the user rejected a previous design and sent a chat prompt, include it.
-    user_message = "Generate the initial house design."
-    if state.user_revision_prompt:
-        user_message = (
-            f"The user rejected the previous design and provided this feedback via chat: "
-            f"'{state.user_revision_prompt}'\n"
-            f"Here is the previous design you made: {json.dumps(state.design_result)}\n"
-            f"Please adjust the design to incorporate the user's feedback while maintaining constraints."
-        )
-    else:
-        # If the Validation agent rejected it (automated check failure)
-        if state.status == "rejected" and state.validation_result:
-            user_message = (
-                f"Your previous design failed automated validation: {state.validation_result['reason']}. "
-                f"Please fix the layout."
-            )
+    LangGraph node for house design generation.
 
-    # 4. Invoke the LLM with structured output
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_message),
-        ("human", "{input}")
-    ])
-    
-    structured_llm = llm.with_structured_output(DesignResult)
-    chain = prompt | structured_llm
-    
-    try:
-        # Execute AI generation
-        result: DesignResult = chain.invoke({
-            "land_size": land_size,
-            "terrain": terrain,
-            "bedrooms": preferences.get("bedrooms", 3),
-            "floors": preferences.get("floors", 1),
-            "style": preferences.get("style", "modern"),
-            "input": user_message
-        })
-        
-        # Save result to state
-        # Ensure a fresh design ID is generated if this is a new layout
-        result.design_id = str(uuid.uuid4())
-        state.design_result = result.model_dump()
-        
-        # Clear the revision prompt now that it has been handled
-        state.user_revision_prompt = None
-        
-        # Route to Cost Estimation next
-        state.current_agent = "cost_estimation"
-        
-        # Log success
-        state.execution_log.append({
-            "agent_name": "DesignAgent",
-            "action": "Generated layout",
-            "result": "success",
-            "created_at_utc": "now"
-        })
-        
-        # Send the updated state back to ASP.NET Core
-        try:
-            import requests
-            headers={"X-Internal-API-Key":"shared-internal-secret"}
-            update_payload={
-                "DesignResult": state.design_result
-            }
-            requests.patch(
-                f"http://localhost:5265/api/v1/internal/workflows/{state.workflow_id}/state",
-                json=update_payload,
-                headers=headers,
-                timeout=5
-            )
-        except Exception as e:
-            print(f"Failed to save design result to ASP.NET Core: {e}")
-        
-    except Exception as e:
-        print(f"Error in Design Agent: {e}")
-        state.status = "failed"
-        
+    Flow:
+    1. Extract inputs (land size, terrain, preferences)
+    2. Check if this is a revision (validation_result with failures)
+    3. Generate layout using template system
+    4. Run geometry validation
+    5. Submit to ASP.NET Core internal API for persistence
+    """
+    start_time = datetime.now(timezone.utc)
+
+    # Extract inputs safely
+    land_size = state.input_data.land_size_perches if state.input_data else 10.0
+    preferences = state.input_data.preferences if state.input_data else {"bedrooms": 3, "floors": 2}
+
+    terrain_type = "flat"
+    if state.terrain_result and "terrain_type" in state.terrain_result:
+        terrain_type = state.terrain_result["terrain_type"]
+
+    # Check if this is a revision (validation failed on a previous design)
+    previous_design = None
+    revision_reason = None
+    if state.validation_result and not state.validation_result.get("passed", True):
+        previous_design = state.design_result
+        revision_reason = state.validation_result.get("revision_reason", "Unknown validation failure")
+        print(f"[Design Agent] Revision requested. Reason: {revision_reason}")
+
+    # Generate layout using the template-based tool
+    design = generate_layout(
+        land_size_perches=land_size,
+        terrain_type=terrain_type,
+        preferences=preferences,
+        previous_design=previous_design,
+        revision_reason=revision_reason,
+    )
+    state.design_result = design.model_dump()
+
+    # Run geometry validation locally before submitting
+    validation = validate_geometry(
+        rooms=design.rooms,
+        expected_bedrooms=preferences.get("bedrooms", 3),
+        expected_floors=preferences.get("floors", 2),
+        land_size_perches=land_size,
+    )
+
+    if not validation.passed:
+        print(f"[Design Agent] Local geometry validation warnings: {validation.failures}")
+        # Still submit — the ASP.NET side and Member 4 validation will catch issues
+
+    # Submit to ASP.NET Core for persistence
+    api_result = _submit_design(state)
+
+    duration = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+
+    action = "Generated room layout and foundation"
+    if revision_reason:
+        action = f"Revised design — reason: {revision_reason[:100]}"
+
+    state.execution_log.append(ExecutionLogEntry(
+        agent_name="DesignAgent",
+        action=action,
+        tool_called="layout_generation_tool",
+        duration_ms=duration,
+        result=api_result,
+        created_at_utc=datetime.now(timezone.utc).isoformat()
+    ))
+
+    state.current_agent = "cost_estimation"
     return state
+
+
+def _submit_design(state: WorkflowState) -> str:
+    """Submit the generated design to ASP.NET Core internal API."""
+    try:
+        headers = {
+            "X-Internal-API-Key": INTERNAL_API_KEY,
+            "Content-Type": "application/json"
+        }
+        response = requests.post(
+            f"{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/design",
+            json=state.design_result,
+            headers=headers,
+            timeout=10,
+            verify=False  # Bypass SSL for local dev
+        )
+        if response.ok:
+            result_data = response.json()
+            print(f"[Design Agent] Design saved: version {result_data.get('version', '?')}, "
+                  f"id {result_data.get('designId', '?')}")
+            return "success"
+        else:
+            error_msg = f"api_failed: {response.status_code}"
+            print(f"[Design Agent] API submission failed: {error_msg}")
+            return error_msg
+    except Exception as e:
+        print(f"[Design Agent] Could not reach ASP.NET: {e}")
+        return "api_call_skipped_local_dev"

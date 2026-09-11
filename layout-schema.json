@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HouseLayoutContract",
+  "description": "Shared 2D/3D layout schema across Python agents, ASP.NET Core, React, and Flutter",
+  "type": "object",
+  "required": ["design_id", "floor_count", "total_built_up_area_sqft", "rooms"],
+  "properties": {
+    "design_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "floor_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "total_built_up_area_sqft": {
+      "type": "number",
+      "minimum": 0
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "room_id",
+          "room_type",
+          "floor",
+          "x",
+          "y",
+          "width",
+          "length",
+          "wall_height",
+          "doors",
+          "windows"
+        ],
+        "properties": {
+          "room_id": { "type": "string", "format": "uuid" },
+          "room_type": { "type": "string" },
+          "floor": { "type": "integer", "minimum": 1 },
+          "x": { "type": "number", "description": "Bottom-left corner X coordinate (ft)" },
+          "y": { "type": "number", "description": "Bottom-left corner Y coordinate (ft)" },
+          "width": { "type": "number", "minimum": 1, "description": "Width along X-axis (ft)" },
+          "length": { "type": "number", "minimum": 1, "description": "Length along Y-axis (ft)" },
+          "wall_height": { "type": "number", "default": 9.0, "description": "Ceiling height (ft)" },
+          "doors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["wall", "offset", "width"],
+              "properties": {
+                "wall": { "type": "string", "enum": ["north", "south", "east", "west"] },
+                "offset": { "type": "number", "minimum": 0, "description": "Offset from wall origin (ft)" },
+                "width": { "type": "number", "minimum": 1, "description": "Door opening width (ft)" }
+              }
+            }
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["wall", "offset", "width"],
+              "properties": {
+                "wall": { "type": "string", "enum": ["north", "south", "east", "west"] },
+                "offset": { "type": "number", "minimum": 0, "description": "Offset from wall origin (ft)" },
+                "width": { "type": "number", "minimum": 1, "description": "Window span width (ft)" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

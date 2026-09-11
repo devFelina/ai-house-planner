@@ -1,7 +1,7 @@
 import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, Html, useGLTF } from '@react-three/drei';
+import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Mic, ArrowRight, Sparkles, Box, Moon, Sun, ChevronRight, ChevronLeft } from 'lucide-react';
 import * as THREE from 'three';
@@ -208,7 +208,7 @@ const HouseScene = ({ isDark }: { isDark: boolean }) => {
       />
       <directionalLight position={[-15, -10, -15]} color={isDark ? "#1e40af" : "#38bdf8"} intensity={isDark ? 0.3 : 0.5} />
       
-      <Environment preset={isDark ? "night" : "city"} blur={0.8} />
+      {/* Removed Environment to prevent CORS / Network errors with pmndrs GitHub raw assets */}
       
       {/* Centered the house and moved up further */}
       <group position={[-2, 1.2, 0]}>

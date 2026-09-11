@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
 import 'views/intake_view.dart';
+import 'views/design_preview_view.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -40,7 +41,16 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterView(),
         '/land_submission': (context) => const IntakeView(),
       },
-
+      // Dynamic route for design preview with workflowId parameter
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/design/')) {
+          final workflowId = settings.name!.split('/design/').last;
+          return MaterialPageRoute(
+            builder: (context) => DesignPreviewView(workflowId: workflowId),
+          );
+        }
+        return null;
+      },
     );
   }
 }
