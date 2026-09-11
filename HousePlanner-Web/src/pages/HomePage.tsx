@@ -208,7 +208,7 @@ const HouseScene = ({ isDark }: { isDark: boolean }) => {
       />
       <directionalLight position={[-15, -10, -15]} color={isDark ? "#1e40af" : "#38bdf8"} intensity={isDark ? 0.3 : 0.5} />
       
-      <Environment preset={isDark ? "night" : "city"} blur={0.8} />
+      {/* Removed Environment to prevent CORS / Network errors with pmndrs GitHub raw assets */}
       
       {/* Centered the house and moved up further */}
       <group position={[-2, 1.2, 0]}>

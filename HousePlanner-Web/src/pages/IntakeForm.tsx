@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, Home, Map, DollarSign, Layers, CheckCircle2 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ interface IntakeFormData {
 }
 
 const IntakeForm: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<IntakeFormData>({
     budget: '',
     landSize: '',
@@ -27,6 +29,7 @@ const IntakeForm: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -46,19 +49,27 @@ const IntakeForm: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Create prompt from form data for the backend AI Coordinator
-      const promptStr = `Budget: ${formData.budget} LKR, Land Size: ${formData.landSize} ${formData.landUnit}, Terrain: ${formData.terrainType}. Requirements: ${formData.bedrooms} bedrooms, ${formData.floors} floors, ${formData.architecturalStyle} style.`;
+      // Construct payload for Python Agentic Service
+      const payload = {
+        submission_id: crypto.randomUUID(),
+        budget_lkr: parseFloat(formData.budget) || 15000000,
+        land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
+        manual_terrain_type: formData.terrainType,
+        preferences: {
+          bedrooms: parseInt(formData.bedrooms) || 3,
+          floors: parseInt(formData.floors) || 1,
+          architecturalStyle: formData.architecturalStyle
+        }
+      };
 
-      // Call your ASP.NET Core Backend
-      // Replace localhost:5000 with your actual backend URL if it differs
-      const response = await fetch('http://localhost:5000/api/AiGeneration/generate', {
+      // Call Python LangGraph API directly to start the workflow
+      const response = await fetch('http://127.0.0.1:8001/workflows/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Internal-API-Key': 'shared-internal-secret' // Required by Python API
         },
-        body: JSON.stringify({
-          prompt: promptStr
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -68,6 +79,7 @@ const IntakeForm: React.FC = () => {
       const result = await response.json();
       console.log('AI Coordinator Result:', result);
       
+      setWorkflowId(result.workflow_id);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);
@@ -77,21 +89,21 @@ const IntakeForm: React.FC = () => {
     }
   };
 
-  if (isSuccess) {
+  if (isSuccess && workflowId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-green-500 mb-4">
           <CheckCircle2 size={64} />
         </motion.div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Requirements Submitted!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">AI Plan Generated!</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-6">
-          The AI Coordinator agent is now analyzing your land and generating architectural concepts.
+          The AI Architect has processed your requirements and generated a 2D structural floor plan.
         </p>
         <button 
-          onClick={() => setIsSuccess(false)}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          onClick={() => navigate(`/dashboard/workflows/${workflowId}`)}
+          className="px-6 py-3 bg-indigo-600 text-white font-bold tracking-wide rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30"
         >
-          Submit Another Request
+          Review Floor Plan
         </button>
       </div>
     );
