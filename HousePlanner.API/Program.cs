@@ -17,7 +17,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -65,6 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // 4. Register application services
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddHttpClient();
 
 // 5. Initialize Firebase Admin SDK
 var serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
@@ -122,6 +123,18 @@ else
 
 var app = builder.Build();
 
+// Apply CORS Policy early to ensure all responses (including errors) get the headers
+app.UseCors("AllowReactApp");
+
+// Auto-create database tables
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Drop existing database to ensure all tables are created properly
+    context.Database.EnsureDeleted();
+    context.Database.EnsureCreated();
+}
+
 // 6. Register exception-handling middleware early in request pipeline
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -141,7 +154,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Apply CORS Policy
-app.UseCors("AllowReactApp");
+// Moved to the top to ensure CORS headers are sent on all responses, including exceptions.
+// (Already applied at the top)
 
 app.UseAuthorization();
 

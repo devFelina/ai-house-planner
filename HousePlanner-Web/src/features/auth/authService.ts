@@ -44,6 +44,42 @@ const authService = {
   },
 
   /**
+   * Verifies the current Firebase session on reload.
+   */
+  verifySession: async (): Promise<{ user: UserProfile; token: string }> => {
+    return new Promise((resolve, reject) => {
+      const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+        unsubscribe(); // Only run once
+
+        if (!fbUser) {
+          return reject(new Error('No active session'));
+        }
+
+        try {
+          const token = await fbUser.getIdToken();
+          setInMemoryToken(token);
+
+          const response = await apiClient.post<{ uid: string; email: string; role: 'Architect' | 'Contractor' }>(
+            '/auth/verify',
+            { token }
+          );
+
+          resolve({
+            user: {
+              uid: response.data.uid,
+              email: response.data.email,
+              role: response.data.role,
+            },
+            token,
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  },
+
+  /**
    * Signs out of Firebase and clears the in-memory token.
    */
   logout: async (): Promise<void> => {

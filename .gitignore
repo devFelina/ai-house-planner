@@ -14,6 +14,9 @@ pnpm-debug.log*
 .env.*
 !.env.example
 **/firebase-service-account.json
+**/service-account.json
+**/serviceAccount.json
+**/secrets/
 *.pem
 *.key
 
@@ -21,6 +24,20 @@ pnpm-debug.log*
 HousePlanner.API/bin/
 HousePlanner.API/obj/
 HousePlanner.API/App_Data/
+
+# Python
+agentic-service/venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Flutter/Dart
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
 
 # Editor and operating-system files
 .vscode/

@@ -30,7 +30,7 @@ export const useAuth = () => {
     user,
     token,
     isAuthenticated: !!user,
-    isLoading: status === 'loading',
+    isLoading: status === 'loading' || status === 'idle',
     error,
     login,
     logout,

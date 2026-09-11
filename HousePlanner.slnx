@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="HousePlanner.API.Tests/HousePlanner.API.Tests.csproj" />
+  <Project Path="HousePlanner.API/HousePlanner.API.csproj" />
+</Solution>

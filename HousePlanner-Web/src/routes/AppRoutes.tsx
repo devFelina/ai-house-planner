@@ -4,11 +4,15 @@ import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
 import ProtectedRoute from './ProtectedRoute';
 import PageContainer from '../components/layout/PageContainer';
+import IntakeForm from '../pages/IntakeForm';
+import HomePage from '../pages/HomePage';
+import { WorkflowReviewPage } from '../pages/WorkflowReviewPage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
 
       {/* Protected Routes */}
@@ -23,9 +27,30 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/dashboard/new-project"
+        element={
+          <ProtectedRoute>
+            <PageContainer>
+              <IntakeForm/>
+            </PageContainer>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard/workflows/:id"
+        element={
+          <ProtectedRoute>
+            <PageContainer>
+              <WorkflowReviewPage />
+            </PageContainer>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Fallback routing */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
