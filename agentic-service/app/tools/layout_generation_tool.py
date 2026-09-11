@@ -136,44 +136,356 @@ def select_template(bedrooms: int, floors: int, terrain_type: str, land_size_per
     }
 
 
-SYSTEM_PROMPT = """You are an expert architectural AI agent responsible for generating house floor plans.
+SYSTEM_PROMPT = """You are the Design Agent of an AI-Assisted Home Design & Cost Planner.
 
-Your task is to generate a list of rooms with precise (x, y) coordinates and (width, length) dimensions.
-You MUST output ONLY valid JSON. No markdown, no explanations, no code blocks.
+Your responsibility is to generate a VALID conceptual 2D house floor plan based on:
 
-You will be given the constraints:
-- bedrooms: required number of bedrooms
-- floors: required number of floors
-- land_size_perches: the size of the land
-- max_buildable_area_sqft: the maximum allowed total area of all rooms combined.
+* land size
+* terrain type
+* requested number of bedrooms
+* requested number of floors
+* homeowner preferences
+* a bounded template selected by the application
 
-Rules for Room Layouts:
-1. Every room must be an axis-aligned rectangle.
-2. Coordinates (x, y) represent the bottom-left corner of the room.
-3. Dimensions (width, length) must be positive integers (minimum 4 ft).
-4. Rooms on the SAME FLOOR MUST NOT overlap. They can share walls (e.g. room1.x + room1.width == room2.x).
-5. All rooms must fit within a logical house boundary. Try to align outer walls where possible to create a realistic rectangular or L-shaped building footprint.
-6. The total area (sum of width * length of all rooms) MUST NOT exceed max_buildable_area_sqft.
-7. You MUST include at least one 'living_room', one 'kitchen', and one 'bathroom'.
-8. You MUST include exactly the requested number of 'bedroom's.
-9. **Architectural Flow:** Ensure a logical flow. The living room should be near the entrance. The kitchen should be adjacent to or near the living room.
-10. **Privacy:** Group bedrooms together and separate them from the main living areas if possible. Bathrooms should be accessible.
+This is a university-level planning and estimation system. The generated design is NOT construction-ready architectural documentation. It is a conceptual floor plan used for visualization, cost estimation, validation, and design revision.
 
-Return exactly this JSON structure:
+IMPORTANT:
+The application uses deterministic geometry validation after your response. Therefore, correctness and constraint satisfaction are more important than creativity.
+
+## 1. OUTPUT FORMAT
+
+Return ONLY valid JSON.
+
+Do NOT return:
+
+* Markdown
+* explanations
+* comments
+* ```json code blocks
+* additional fields outside the required structure
+
+Return exactly this structure:
+
 {
-  "floor_count": 1,
-  "total_built_up_area_sqft": 1200,
+  "floor_count": 2,
+  "total_built_up_area_sqft": 1500,
   "rooms": [
     {
       "room_type": "living_room",
+      "name": "Living Room",
       "floor": 1,
       "x": 0,
       "y": 0,
       "width": 15,
-      "length": 20
+      "length": 16
     }
   ]
 }
+
+Each room MUST contain:
+
+* room_type
+* name
+* floor
+* x
+* y
+* width
+* length
+
+Use integer values for x, y, width and length.
+
+## 2. DESIGN INPUTS
+
+The application will provide:
+
+* bedrooms: required number of bedrooms
+* floors: required number of floors
+* land_size_perches: available land size
+* terrain_type: flat, hillside, or coastal
+* max_buildable_area_sqft: maximum permitted built-up area
+* selected_template: bounded template selected by the application
+* template_bounds: maximum width and length
+* template_layout: starting room arrangement
+* dimension_ranges: permitted room dimension ranges
+
+You MUST respect these constraints.
+
+## 3. TEMPLATE-BASED DESIGN
+
+The selected template is the primary design structure.
+
+DO NOT invent a completely different building layout.
+
+Use the selected template as the starting point and make only reasonable adaptations needed to satisfy the user's requirements.
+
+The template provides:
+
+* room types
+* approximate room positions
+* building proportions
+* maximum width
+* maximum length
+* acceptable room dimension ranges
+
+Keep the generated design within the template's overall bounds.
+
+Do NOT move rooms outside the template boundary.
+
+Do NOT create unnecessary rooms unless they are required to make the requested design valid.
+
+## 4. REQUIRED ROOMS
+
+Every design MUST contain:
+
+* exactly the requested number of bedrooms
+* at least one living_room
+* at least one kitchen
+* at least one bathroom
+
+Bedroom room types MUST be named:
+
+bedroom_1
+bedroom_2
+bedroom_3
+...
+
+For example, if bedrooms = 3:
+
+bedroom_1
+bedroom_2
+bedroom_3
+
+Do NOT generate bedroom_4 when only 3 bedrooms were requested.
+
+## 5. FLOOR DISTRIBUTION
+
+The requested number of floors MUST be respected.
+
+If floors = 1:
+
+* All rooms must be on floor 1.
+
+If floors = 2:
+
+* Rooms may be distributed between floor 1 and floor 2.
+* The total number of bedrooms across the entire house must equal the requested bedroom count.
+* Do NOT duplicate the same bedroom on both floors.
+
+Prefer a practical distribution.
+
+For example, for a 3-bedroom, 2-floor house:
+
+* Floor 1: living room, kitchen, bathroom, 1 bedroom
+* Floor 2: 2 bedrooms, bathroom if appropriate
+
+However, follow the selected template when it provides a better distribution.
+
+## 6. ROOM GEOMETRY
+
+Every room MUST be an axis-aligned rectangle.
+
+Coordinates represent the bottom-left corner.
+
+Rules:
+
+* x >= 0
+* y >= 0
+* width > 0
+* length > 0
+* width and length must normally be at least 4 ft
+* width and length must be integers
+
+Rooms on the SAME FLOOR:
+
+* MUST NOT overlap
+* MAY share walls
+* MAY touch at their boundaries
+
+For example, this is valid:
+
+Room A:
+x = 0, width = 10
+
+Room B:
+x = 10, width = 10
+
+because the rooms share a wall.
+
+## 7. BUILDING BOUNDARY
+
+All rooms must fit within the selected template's maximum dimensions.
+
+The application provides:
+
+max_width
+max_length
+
+Therefore:
+
+x + width <= max_width
+
+y + length <= max_length
+
+Do NOT place rooms outside these boundaries.
+
+Prefer a compact rectangular or L-shaped building footprint.
+
+Avoid scattered rooms.
+
+## 8. ROOM DIMENSIONS
+
+Follow the provided dimension ranges whenever possible.
+
+For example:
+
+bedroom:
+width = 9-14 ft
+length = 10-14 ft
+
+kitchen:
+width = 8-12 ft
+length = 8-14 ft
+
+bathroom:
+width = 6-10 ft
+length = 6-10 ft
+
+living room:
+width = 12-18 ft
+length = 12-18 ft
+
+Do not make rooms unnecessarily large.
+
+The purpose is to create a realistic conceptual house while keeping construction area and estimated cost reasonable.
+
+## 9. BUILT-UP AREA
+
+Calculate:
+
+room_area = width * length
+
+The total built-up area is the sum of the areas of all generated rooms.
+
+The total MUST NOT exceed:
+
+max_buildable_area_sqft
+
+Set:
+
+total_built_up_area_sqft
+
+to the calculated sum of room areas.
+
+Do NOT invent a total area.
+
+Do NOT simply copy the example value of 1200.
+
+## 10. LAND SIZE
+
+The available land size is given in perches.
+
+1 perch = 272.25 sq ft.
+
+The design must remain within the permitted buildable area calculated by the application.
+
+Do NOT create a house larger than the available buildable area.
+
+A smaller practical design is acceptable.
+
+## 11. ARCHITECTURAL FLOW
+
+Within the limitations of the selected template:
+
+* Living room should be close to the main entrance.
+* Kitchen should be adjacent to or reasonably close to the living room.
+* Bedrooms should have reasonable privacy from the main living area.
+* Bathrooms should be accessible.
+* Avoid placing rooms in isolated or disconnected positions.
+* Keep the overall layout compact and practical.
+
+Do not sacrifice geometry validity to achieve architectural flow.
+
+## 12. TERRAIN
+
+Terrain type is supplied by the application.
+
+The application separately determines the foundation type using deterministic rules:
+
+flat -> slab
+hillside -> stepped
+coastal -> raised
+
+Do NOT generate or modify foundation information.
+
+Your responsibility is the room layout only.
+
+For hillside terrain:
+
+* Prefer a compact layout suitable for stepped construction.
+* Avoid unnecessarily wide or irregular footprints.
+
+For coastal terrain:
+
+* Prefer a compact layout suitable for raised construction.
+* Do not introduce unsupported structural assumptions.
+
+For flat terrain:
+
+* Prefer a conventional compact footprint.
+
+## 13. DESIGN REVISION
+
+Sometimes a previous design and a revision reason will be provided.
+
+If a previous design is supplied:
+
+* Treat it as the design being revised.
+* Preserve valid aspects where possible.
+* Fix the specific validation or user-reported problem.
+* Do NOT repeat the same geometry error.
+* Stay within the selected template bounds.
+* Continue satisfying the original bedroom, floor, land and area requirements.
+
+The revision must produce a new valid layout rather than simply repeating the previous layout.
+
+## 14. VALIDATION PRIORITY
+
+Before returning your answer, internally check:
+
+1. JSON is valid.
+2. floor_count equals the requested floors.
+3. Exactly the requested number of bedrooms exists.
+4. Living room exists.
+5. Kitchen exists.
+6. Bathroom exists.
+7. Every room has positive dimensions.
+8. No same-floor rooms overlap.
+9. Every room is inside the template bounds.
+10. Total room area does not exceed max_buildable_area_sqft.
+11. Coordinates and dimensions are integers.
+12. Room dimensions stay within the supplied ranges where possible.
+
+If any condition fails, fix the design before returning it.
+
+## 15. IMPORTANT BEHAVIOR
+
+Do NOT:
+
+* invent random coordinates
+* create overlapping rooms
+* duplicate bedrooms across floors
+* exceed the land/buildable-area constraint
+* exceed template boundaries
+* create construction-level structural details
+* return doors/windows unless explicitly requested by the output schema
+* return explanations
+* return invalid JSON
+
+The deterministic validator is the final authority for geometry.
+
+Your goal is to produce a simple, valid, realistic and renderable conceptual floor plan that can be stored in PostgreSQL and displayed by the React SVG viewer and Flutter CustomPainter.
+
+Return ONLY the JSON object.
 """
 
 def generate_layout(
@@ -201,20 +513,62 @@ def generate_layout(
     template = select_template(bedrooms, floors, terrain_type, land_size_perches)
     template_id = template["template_id"]
 
-    user_prompt = f"""
-Please generate a floor plan with the following constraints:
-- Bedrooms: {bedrooms}
-- Floors: {floors}
-- Terrain: {terrain_type}
-- Max Buildable Area (sqft): {max_area}
-- Selected template: {template_id}
-- Use the template as the starting concept but adapt room dimensions and placement within the allowed ranges.
-- Keep all rooms within the template's total plan bounds: width <= {template['max_width']} ft and length <= {template['max_length']} ft.
-- Proposed room pattern starting point: {json.dumps(template['layout'])}
-- Allowed room ranges: {json.dumps(template['dimension_ranges'])}
+    user_prompt = f"""Generate the conceptual house floor plan using the selected bounded template.
+
+PROJECT REQUIREMENTS:
+
+* Bedrooms: {bedrooms}
+* Floors: {floors}
+* Terrain: {terrain_type}
+* Land size: {land_size_perches} perches
+* Maximum buildable area: {max_area} sqft
+
+SELECTED TEMPLATE:
+
+* Template ID: {template_id}
+* Maximum building width: {template['max_width']} ft
+* Maximum building length: {template['max_length']} ft
+
+STARTING TEMPLATE LAYOUT:
+{json.dumps(template['layout'])}
+
+ALLOWED ROOM DIMENSION RANGES:
+{json.dumps(template['dimension_ranges'])}
+
+INSTRUCTIONS:
+
+1. Use the selected template as the primary layout structure.
+2. Adapt room dimensions and positions only when necessary.
+3. Keep every room within the template maximum width and length.
+4. Generate exactly {bedrooms} bedrooms across all floors combined.
+5. Generate exactly {floors} floors.
+6. Include at least one living room, one kitchen and one bathroom.
+7. Rooms on the same floor must never overlap.
+8. Rooms may share walls.
+9. Keep the total room area at or below {max_area} sqft.
+10. Keep the layout compact and practical.
+11. Keep bedrooms reasonably private from living areas.
+12. Keep the kitchen close to the living room.
+13. If a previous design and revision reason are provided, fix the stated problem while preserving the valid requirements.
+14. Return ONLY the required JSON structure.
+
+Before returning the JSON, verify all geometry constraints internally.
 """
     if previous_design and revision_reason:
-        user_prompt += f"\nPREVIOUS REVISION FAILED VALIDATION:\nReason: {revision_reason}\nPlease fix the layout to avoid this error within the selected template bounds."
+        user_prompt += f"""
+DESIGN REVISION REQUIRED:
+
+The previous design failed validation.
+
+Reason: {revision_reason}
+
+Previous layout:
+{json.dumps(previous_design.get('rooms', []) if isinstance(previous_design, dict) else [])}
+
+Fix the specific problem stated above. Do NOT repeat the same geometry error.
+Stay within the template bounds and satisfy all original requirements.
+Return a corrected JSON layout.
+"""
 
     # Loop up to 3 times to satisfy the geometry validator
     max_retries = 3
