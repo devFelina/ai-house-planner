@@ -62,11 +62,14 @@ namespace HousePlanner.API.Controllers
                 await _context.SaveChangesAsync();
 
                 payload = new {
+                    workflow_id = workflowState.Id,
                     submission_id = submission.Id,
                     budget_lkr = request.BudgetLkr,
                     land_size_perches = request.LandSizePerches,
                     manual_terrain_type = request.ManualTerrainType,
-                    preferences = request.Preferences
+                    preferences = request.Preferences,
+                    plot_constraints = request.PlotConstraints,
+                    design_seed = request.DesignSeed
                 };
             }
             catch (Exception ex)
@@ -74,7 +77,8 @@ namespace HousePlanner.API.Controllers
                 return StatusCode(500, new { Message = "Database error while saving the submission.", Details = ex.InnerException?.Message ?? ex.Message });
             }
 
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var content = new StringContent(JsonSerializer.Serialize(payload, options), Encoding.UTF8, "application/json");
             _agenticServiceClient.DefaultRequestHeaders.Clear();
             _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
 
@@ -83,13 +87,11 @@ namespace HousePlanner.API.Controllers
                 var response = await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/start", content);
                 if (!response.IsSuccessStatusCode)
                 {
-                    // If the Python API returns a 4xx or 5xx, we handle it gracefully instead of a raw 500
                     return BadRequest(new { Message = $"Agentic service returned an error: {response.StatusCode}" });
                 }
             }
             catch (HttpRequestException ex)
             {
-                // This means the Python backend is NOT running or is unreachable
                 return BadRequest(new { Message = "Cannot connect to the AI Agentic Service. Please make sure it is running on port 8001.", Details = ex.Message });
             }
             catch (Exception ex)
@@ -107,6 +109,8 @@ namespace HousePlanner.API.Controllers
         public decimal LandSizePerches { get; set; }
         public string? ManualTerrainType { get; set; }
         public PreferencesDto? Preferences { get; set; }
+        public JsonElement? PlotConstraints { get; set; }
+        public int? DesignSeed { get; set; }
     }
 
     public class PreferencesDto
