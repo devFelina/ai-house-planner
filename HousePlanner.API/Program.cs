@@ -65,6 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // 4. Register application services
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
 
 // 5. Initialize Firebase Admin SDK
 var serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
@@ -122,11 +123,58 @@ else
 
 var app = builder.Build();
 
-// Auto-create database tables
+// Auto-create database tables and seed data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     context.Database.EnsureCreated();
+
+    // Seed PricingData
+    if (!context.PricingItems.Any())
+    {
+        var seedData = new List<HousePlanner.API.Entities.PricingData>
+        {
+            new HousePlanner.API.Entities.PricingData 
+            { 
+                ItemName = "Cement", 
+                Category = "material", 
+                UnitCostLkr = 2500m, 
+                Unit = "bag", 
+                TerrainMultiplier = new HousePlanner.API.Entities.TerrainMultiplierData { Flat = 1.0m, Hillside = 1.25m, Coastal = 1.35m }, 
+                UpdatedAt = DateTimeOffset.UtcNow 
+            },
+            new HousePlanner.API.Entities.PricingData 
+            { 
+                ItemName = "Steel", 
+                Category = "material", 
+                UnitCostLkr = 350000m, 
+                Unit = "ton", 
+                TerrainMultiplier = new HousePlanner.API.Entities.TerrainMultiplierData { Flat = 1.0m, Hillside = 1.2m, Coastal = 1.5m }, 
+                UpdatedAt = DateTimeOffset.UtcNow 
+            },
+            new HousePlanner.API.Entities.PricingData 
+            { 
+                ItemName = "Flooring", 
+                Category = "material", 
+                UnitCostLkr = 8000m, 
+                Unit = "sqm", 
+                TerrainMultiplier = new HousePlanner.API.Entities.TerrainMultiplierData { Flat = 1.0m, Hillside = 1.1m, Coastal = 1.1m }, 
+                UpdatedAt = DateTimeOffset.UtcNow 
+            },
+            new HousePlanner.API.Entities.PricingData 
+            { 
+                ItemName = "Construction Labour", 
+                Category = "labour", 
+                UnitCostLkr = 4500m, 
+                Unit = "day", 
+                TerrainMultiplier = new HousePlanner.API.Entities.TerrainMultiplierData { Flat = 1.0m, Hillside = 1.3m, Coastal = 1.2m }, 
+                UpdatedAt = DateTimeOffset.UtcNow 
+            }
+        };
+
+        context.PricingItems.AddRange(seedData);
+        context.SaveChanges();
+    }
 }
 
 // 6. Register exception-handling middleware early in request pipeline
