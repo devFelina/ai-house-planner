@@ -8,7 +8,12 @@ Why deterministic validation instead of relying on the LLM:
 
 All checks are rule-based — no AI involved.
 """
-from typing import List, Tuple
+from typing import List
+from math import isfinite
+from app.design.plot_constraints import PlotConstraints
+from app.design.adjacency import shared_wall, exterior_segments, graph_for, reachable, road_access_clear
+from app.design.room_rules import rule_for, room_kind, CIRCULATION_TYPES, MIN_COMPACTNESS
+from app.schemas.design_result import DesignResult
 from app.schemas.design_result import RoomLayout
 from app.tools.land_utils import max_buildable_area
 
@@ -39,6 +44,9 @@ def validate_geometry(
     expected_bedrooms: int,
     expected_floors: int,
     land_size_perches: float,
+    *,
+    plot: PlotConstraints | None = None,
+    design: DesignResult | None = None,
 ) -> GeometryValidationResult:
     """
     Run all geometry checks on a generated design.
@@ -57,6 +65,10 @@ def validate_geometry(
 
     if not rooms:
         result.fail("no_rooms", "Design has no rooms.")
+        return result
+
+    if any(not all(isfinite(v) for v in (r.x, r.y, r.width, r.length, r.area_sqft or 0)) for r in rooms):
+        result.fail('invalid_dimensions', 'Geometry must contain only finite numbers.')
         return result
 
     # 1. Positive dimensions
@@ -132,7 +144,129 @@ def validate_geometry(
                 f"Room '{room.room_type}' has unrealistic dimensions: {room.width}x{room.length}"
             )
 
+    _validate_spatial_rules(result, rooms, expected_floors, plot, design)
     return result
+
+
+def _validate_spatial_rules(result: GeometryValidationResult, rooms: List[RoomLayout],
+                            expected_floors: int, plot: PlotConstraints | None,
+                            design: DesignResult | None) -> None:
+    if len({r.room_id for r in rooms}) != len(rooms):
+        result.fail('duplicate_room_id', 'Room IDs must be unique across all floors.')
+    if {r.floor for r in rooms} != set(range(1, expected_floors+1)):
+        result.fail('floor_count', 'Floors must be contiguous starting at 1.')
+    for room in rooms:
+        rule = rule_for(room.room_type)
+        dims, minimum = sorted((room.width, room.length)), sorted((rule.min_width, rule.min_length))
+        if dims[0] < minimum[0]-0.001 or dims[1] < minimum[1]-0.001:
+            result.fail('minimum_dimensions', f'{room.name} is below conceptual minimum dimensions.')
+        if dims[0] > 0 and dims[1]/dims[0] > rule.aspect_limit:
+            result.fail('aspect_ratio', f'{room.name} is excessively narrow.')
+        if room.x < -0.001 or room.y < -0.001 or (plot and
+                (room.x+room.width > plot.buildable_width+0.001 or room.y+room.length > plot.buildable_length+0.001)):
+            result.fail('building_bounds', f'{room.name} lies outside the buildable boundary.')
+        for opening in room.doors + room.windows:
+            span = room.width if opening.wall in ('north', 'south') else room.length
+            if not all(isfinite(v) for v in (opening.offset, opening.width)) or opening.offset < 0 or opening.width <= 0 or opening.offset+opening.width > span+0.001:
+                result.fail('opening_bounds', f'{room.name} has an opening outside its wall.')
+    # Geometric components are checked even for legacy callers without metadata.
+    for floor in range(1, expected_floors+1):
+        rs = [r for r in rooms if r.floor == floor]
+        if not rs:
+            continue
+        graph = {r.room_id: {b.room_id for b in rs if r != b and shared_wall(r, b)} for r in rs}
+        if len(reachable(graph, rs[0].room_id)) != len(rs):
+            result.fail('disconnected_layout', f'Floor {floor} has disconnected room components.')
+        if not any(room_kind(r.room_type) not in CIRCULATION_TYPES | {'balcony', 'veranda', 'utility', 'bathroom'} for r in rs):
+            result.fail('floor_utilisation', f'Floor {floor} contains no meaningful habitable spaces.')
+        bbox = (max(r.x+r.width for r in rs)-min(r.x for r in rs))*(max(r.y+r.length for r in rs)-min(r.y for r in rs))
+        if bbox > 0 and sum(r.width*r.length for r in rs)/bbox < MIN_COMPACTNESS:
+            result.fail('footprint_compactness', f'Floor {floor} is unreasonably scattered.')
+        if expected_floors > 1 and not any(room_kind(r.room_type) == 'staircase' for r in rs):
+            result.fail('stair_requirement', f'Floor {floor} needs a staircase.')
+    if not design:
+        # Legacy room-only inspection cannot certify door accessibility. Production
+        # callers must pass the complete design to receive full certification.
+        return
+    total = sum(r.width*r.length for r in rooms)
+    ground = sum(r.width*r.length for r in rooms if r.floor == 1)
+    if abs(design.total_built_up_area_sqft-total) > 0.1 or (design.ground_footprint_sqft is not None and abs(design.ground_footprint_sqft-ground) > 0.1):
+        result.fail('area_mismatch', 'Reported design totals do not match room geometry.')
+    if design.floor_count != expected_floors:
+        result.fail('floor_count', 'Design floor_count differs from the request.')
+    if plot and ground > plot.maximum_ground_footprint+0.01:
+        result.fail('ground_footprint', 'Ground footprint exceeds the plot limit.')
+    by_id = {r.room_id: r for r in rooms}
+    verified = []
+    for connection in design.connections:
+        a, b = by_id.get(connection.from_room), by_id.get(connection.to_room)
+        if not a or not b or a.room_id == b.room_id:
+            result.fail('invalid_connection', 'Connection references missing/identical rooms.')
+            continue
+        if connection.kind == 'stair':
+            if (room_kind(a.room_type) != 'staircase' or room_kind(b.room_type) != 'staircase'
+                    or abs(a.floor-b.floor) != 1 or
+                    any(abs(getattr(a, key)-getattr(b, key)) > 0.001 for key in ('x', 'y', 'width', 'length'))):
+                result.fail('stair_requirement', 'Stair connections must align across consecutive floors.')
+                continue
+        else:
+            wall = shared_wall(a, b)
+            if not wall:
+                result.fail('invalid_connection', 'Door connection lacks a shared wall of sufficient width.')
+                continue
+            side, lo, hi = wall
+            from app.design.adjacency import OPPOSITE
+            def intervals(room: RoomLayout, side: str) -> list[tuple[float, float]]:
+                origin = room.x if side in ('north', 'south') else room.y
+                return [(origin+d.offset, origin+d.offset+d.width) for d in room.doors if d.wall == side]
+            if not any(min(a1, b1, hi)-max(a0, b0, lo) >= 3-0.001
+                       for a0, a1 in intervals(a, side) for b0, b1 in intervals(b, OPPOSITE[side])):
+                result.fail('invalid_connection', 'Connection needs matching door openings on both rooms.')
+                continue
+        verified.append(connection)
+    graph = graph_for(rooms, verified)
+    valid_entrances = []
+    for entrance in design.entrances:
+        r = by_id.get(entrance.room_id)
+        if not all(isfinite(v) for v in (entrance.offset, entrance.width)) or entrance.width < 3 or entrance.offset < 0:
+            result.fail('entrance', 'Entrance needs a finite opening at least 3 ft wide.')
+            continue
+        if not r or r.floor != 1 or not any(wall == entrance.wall and lo <= entrance.offset+0.001 and hi >= entrance.offset+entrance.width-0.001
+                                           for wall, lo, hi in exterior_segments(r, rooms)):
+            result.fail('entrance', 'Entrance must open onto a ground-floor exterior wall.')
+            continue
+        if not any(d.wall == entrance.wall and abs(d.offset-entrance.offset) < 0.001 and d.width >= entrance.width for d in r.doors):
+            result.fail('entrance', 'Entrance metadata must match a rendered door.')
+            continue
+        if plot and (entrance.wall != plot.road_side or not road_access_clear(r, rooms, entrance.wall, entrance.offset, entrance.width)):
+            result.fail('entrance_access', 'Entrance must have a clear access strip toward the road.')
+            continue
+        valid_entrances.append(r.room_id)
+    if not valid_entrances:
+        result.fail('entrance', 'A ground-floor exterior entrance is required.')
+        return
+    accessible = set().union(*(reachable(graph, key) for key in valid_entrances))
+    if len(accessible) != len(rooms):
+        result.fail('accessibility', 'Every room must be reachable from the entrance through actual connections.')
+    private_ids = {r.room_id for r in rooms if room_kind(r.room_type) in ('bedroom', 'bathroom', 'home_office')}
+    for r in rooms:
+        blocked = private_ids - {r.room_id}
+        if r.room_type == 'bathroom_attached':
+            blocked -= {b.room_id for b in rooms if b.room_type == 'bedroom_1'}
+        if not any(r.room_id in reachable(graph, key, blocked) for key in valid_entrances):
+            result.fail('privacy_access', f'{r.name} requires passage through an unrelated private room.')
+    for a, b, strength in (design.program or {}).get('adjacency_preferences', []):
+        if strength != 'required':
+            continue
+        ra = next((r for r in rooms if r.room_type == a), None)
+        rb = next((r for r in rooms if r.room_type == b), None)
+        if not ra or not rb or rb.room_id not in graph[ra.room_id]:
+            result.fail('required_adjacency', f'{a} must connect directly to {b}.')
+    for spec in (design.program or {}).get('rooms', []):
+        matching = [r for r in rooms if r.room_type == spec['room_type'] and r.floor == spec['floor']]
+        if not matching:
+            result.fail('spatial_program', f"Missing requested space {spec['id']} on floor {spec['floor']}.")
+    # Exterior exposure is a preference, reflected in scoring rather than a code claim.
 
 
 def _rooms_overlap(a: RoomLayout, b: RoomLayout) -> bool:

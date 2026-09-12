@@ -1,6 +1,7 @@
 import uuid
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
+from app.design.models import Connection, Entrance
 
 
 class Opening(BaseModel):
@@ -47,3 +48,13 @@ class DesignResult(BaseModel):
         default="CUSTOM", description="Identifier of the layout template used"
     )
     rooms: List[RoomLayout] = Field(default_factory=list)
+
+    template_family: Optional[str] = None
+    design_seed: Optional[int] = None
+    design_score: Optional[float] = Field(None, ge=0, le=100)
+    ground_footprint_sqft: Optional[float] = Field(None, ge=0)
+    connections: List[Connection] = Field(default_factory=list)
+    entrances: List[Entrance] = Field(default_factory=list)
+    plot_constraints: Optional[dict] = None
+    program: Optional[dict] = None
+    candidate_summary: dict = Field(default_factory=dict)

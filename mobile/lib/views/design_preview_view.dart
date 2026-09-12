@@ -32,10 +32,17 @@ class _DesignPreviewViewState extends State<DesignPreviewView> {
 
       setState(() {
         _workflowData = data;
+        if (data['status'] == 'failed') {
+          _error = data['terrainType'] == 'unknown'
+              ? 'Provide a manual terrain classification and submit again.'
+              : 'No valid layout was saved. Review plot dimensions and room requirements, then submit again.';
+        }
         if (data['design'] != null && data['design']['rooms'] != null) {
           // Convert the API DTO format to the UI's RoomLayout model
           _rooms = (data['design']['rooms'] as List).map((r) {
+            final entrances = (data['design']['entrances'] as List? ?? []).where((e) => e['room_id'] == r['roomId']);
             return RoomLayout(
+              entrance: entrances.isEmpty ? null : Opening.fromJson(entrances.first),
               roomId: r['roomId'] ?? '',
               roomType: r['roomType'] ?? 'unknown',
               name: r['name'],

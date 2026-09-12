@@ -50,52 +50,28 @@ class TestFoundationRule:
 # ─── TASK 2: Template Registry ───────────────────────────────────────────────
 
 class TestTemplateRegistry:
+    @pytest.mark.parametrize('terrain,family', [('flat','DUPLEX_STACKED'),
+        ('hillside','HILLSIDE_STEPPED'),('coastal','COASTAL_RAISED_COMPACT')])
+    def test_family_suitability_without_coordinates(self, terrain, family):
+        t = select_template(3, 2, terrain, 10)
+        assert t['name'] == family
+        assert 'layout' not in t
+        assert t['min_width'] > 0 and t['min_length'] > 0
+        assert 2 in t['supported_floors']
+        assert t['bedroom_range'][0] <= 3 <= t['bedroom_range'][1]
+        assert t['zoning'] and t['adjacency']
 
-    def test_3br_2f_flat_template_exists(self):
-        t = select_template(3, 2, "flat", 10)
-        assert t["template_id"] == "3BR_2F_FLAT"
-        assert "living_room" in t["layout"]
-        assert "kitchen" in t["layout"]
-        assert "bathroom" in t["layout"]
-        assert "bedroom_1" in t["layout"]
-        assert "bedroom_2" in t["layout"]
-        assert "bedroom_3" in t["layout"]
+    def test_small_plot_compact_family(self):
+        assert select_template(3, 1, 'flat', 6)['name'] == 'COMPACT_RECTANGLE'
 
-    def test_3br_2f_hillside_template_exists(self):
-        t = select_template(3, 2, "hillside", 10)
-        assert t["template_id"] == "3BR_2F_HILLSIDE"
-        assert t["max_width"] > 0
-        assert t["max_length"] > 0
+    def test_dimension_rules_are_centralized(self):
+        from app.design.room_rules import rule_for
+        rule = rule_for('bedroom_1')
+        assert rule.min_width >= 9 and rule.min_length >= 10
 
-    def test_4br_2f_coastal_template_exists(self):
-        t = select_template(4, 2, "coastal", 10)
-        assert t["template_id"] == "4BR_2F_COASTAL"
-        assert "bedroom_4" in t["layout"]
-
-    def test_3br_1f_flat_template_exists(self):
-        t = select_template(3, 1, "flat", 6)
-        assert t["template_id"] == "3BR_1F_FLAT"
-
-    def test_template_has_dimension_ranges(self):
-        t = select_template(3, 2, "flat", 10)
-        assert "dimension_ranges" in t
-        assert "bedroom" in t["dimension_ranges"]
-        ranges = t["dimension_ranges"]["bedroom"]
-        assert len(ranges["width"]) == 2
-        assert ranges["width"][0] < ranges["width"][1]
-
-    def test_unknown_terrain_fallback_to_flat(self):
-        t = select_template(3, 2, "mountain", 10)
-        # mountain normalises to flat → falls back to generic template
-        assert t is not None
-        assert t["template_id"] is not None
-
-    def test_template_layout_rooms_have_positive_dimensions(self):
-        for terrain in ["flat", "hillside", "coastal"]:
-            t = select_template(3, 2, terrain, 10)
-            for room_name, spec in t["layout"].items():
-                assert spec["width"] > 0, f"Width <=0 for {room_name} in {terrain}"
-                assert spec["length"] > 0, f"Length <=0 for {room_name} in {terrain}"
+    def test_unknown_terrain_is_not_silently_flat(self):
+        with pytest.raises(ValueError):
+            select_template(3, 2, 'mountain', 10)
 
 
 # ─── TASK 3: Four Design Scenarios using Mock Layout ─────────────────────────
@@ -109,6 +85,8 @@ class TestDesignScenarios:
     def _validate(self, result: DesignResult, expected_bedrooms: int, expected_floors: int, land: float, expected_foundation: str):
         validation = validate_geometry(result.rooms, expected_bedrooms, expected_floors, land)
         errors = validation.failures
+        assert validation.passed, errors
+        assert sum("bedroom" in r.room_type for r in result.rooms) == expected_bedrooms
 
         bedrooms_found = [r for r in result.rooms if "bedroom" in r.room_type.lower()]
         has_living = any("living" in r.room_type for r in result.rooms)
@@ -172,12 +150,8 @@ class TestDesignScenarios:
         assert data["has_bathroom"]
         assert data["foundation"] == "raised", f"Expected raised, got {data['foundation']}"
         assert result.terrain_type == "coastal"
-        # Note: _mock_layout duplicates all template rooms per floor.
-        # The AI-generated path (LLM) uses max_area as a hard ceiling per the geometry validator.
-        # For the bounded mock we verify per-floor area is within limits.
-        floor1_rooms = [r for r in result.rooms if r.floor == 1]
-        floor1_area = sum(r.width * r.length for r in floor1_rooms)
-        assert floor1_area <= data["max_area"], f"Floor 1 area {floor1_area} exceeds max {data['max_area']}"
+        assert data['bedroom_count'] == 4
+        assert data['total_area'] <= data['max_area']
         # And every individual room must have positive dimensions
         for room in result.rooms:
             assert room.width > 0
@@ -302,10 +276,10 @@ class TestLandAnalysisEdgeCases:
         result = _parse_terrain_result("")
         assert result is None
 
-    def test_safe_fallback_uses_flat_terrain(self):
-        """Fallback must be conservative: flat terrain, slope unknown."""
+    def test_safe_fallback_uses_unknown_terrain(self):
+        """Failed vision must not invent a confident terrain classification."""
         result = _safe_fallback("repeated_failure")
-        assert result.terrain_type == "flat"
+        assert result.terrain_type == "unknown"
         assert result.slope_estimate == "unknown"
         assert len(result.notable_features) > 0
 

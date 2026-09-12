@@ -3,6 +3,7 @@ export type UserRole = 'Architect' | 'Contractor';
 export interface UserProfile {
   uid: string;
   email: string;
+  fullName?: string;
   role: UserRole;
 }
 

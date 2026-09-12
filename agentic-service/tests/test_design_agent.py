@@ -9,8 +9,9 @@ def test_select_template_for_hillside_three_bedroom_two_floor():
     template = select_template(bedrooms=3, floors=2, terrain_type='hillside', land_size_perches=10)
     assert template is not None
     assert template['template_id'] == '3BR_2F_HILLSIDE'
-    assert template['layout']['living_room']['width'] > 0
-    assert template['layout']['bedroom_1']['width'] > 0
+    assert template['name'] == 'HILLSIDE_STEPPED'
+    assert 'layout' not in template
+    assert template['min_width'] > 0
 
 
 @patch('app.agents.design_agent._submit_design')
