@@ -19,6 +19,8 @@ pnpm-debug.log*
 HousePlanner.API/appsettings.json
 
 # .NET build output and local data
+**/bin/
+**/obj/
 HousePlanner.API/bin/
 HousePlanner.API/obj/
 HousePlanner.API/App_Data/

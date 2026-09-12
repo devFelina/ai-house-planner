@@ -5,6 +5,28 @@ export interface ApprovalRequestDto {
   revisionNotes?: string;
 }
 
+export interface ApprovalResponseDto {
+  workflowId: string;
+  decision: string;
+  status: string;
+  projectId: string | null;
+  message: string;
+  timestamp: string;
+}
+
+export interface WorkflowStatusResponseDto {
+  workflowId: string;
+  status: string;
+  approvalStatus: string;
+  validationPassed: boolean;
+  retryCount: number;
+  revisionNotes: string | null;
+  validationResult: Record<string, unknown> | null;
+  projectId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PhaseTrackingDto {
   phaseName: string;
   status: string;
@@ -25,9 +47,8 @@ export const projectService = {
    * Retrieves the current status of a workflow.
    * GET /api/v1/workflows/{id}/status
    */
-  getWorkflowStatus: async (workflowId: string) => {
-    // Note: Do not call this automatically if backend is not implemented yet.
-    const response = await apiClient.get(`/api/v1/workflows/${workflowId}/status`);
+  getWorkflowStatus: async (workflowId: string): Promise<WorkflowStatusResponseDto> => {
+    const response = await apiClient.get<WorkflowStatusResponseDto>(`/workflows/${workflowId}/status`);
     return response.data;
   },
 
@@ -35,9 +56,8 @@ export const projectService = {
    * Submits an approval decision for a workflow.
    * POST /api/v1/workflows/{id}/approve
    */
-  approveWorkflow: async (workflowId: string, data: ApprovalRequestDto) => {
-    // Note: Do not call this automatically if backend is not implemented yet.
-    const response = await apiClient.post(`/api/v1/workflows/${workflowId}/approve`, data);
+  approveWorkflow: async (workflowId: string, data: ApprovalRequestDto): Promise<ApprovalResponseDto> => {
+    const response = await apiClient.post<ApprovalResponseDto>(`/workflows/${workflowId}/approve`, data);
     return response.data;
   },
 
@@ -46,8 +66,16 @@ export const projectService = {
    * GET /api/v1/projects/{id}/tracking
    */
   getProjectTracking: async (projectId: string): Promise<ProjectTrackingResponseDto> => {
-    // Note: Do not call this automatically if backend is not implemented yet.
-    const response = await apiClient.get<ProjectTrackingResponseDto>(`/api/v1/projects/${projectId}/tracking`);
+    const response = await apiClient.get<ProjectTrackingResponseDto>(`/projects/${projectId}/tracking`);
+    return response.data;
+  },
+
+  /**
+   * Retrieves the tracking details for a project by workflow ID.
+   * GET /api/v1/projects/by-workflow/{workflowId}
+   */
+  getProjectByWorkflow: async (workflowId: string): Promise<ProjectTrackingResponseDto> => {
+    const response = await apiClient.get<ProjectTrackingResponseDto>(`/projects/by-workflow/${workflowId}`);
     return response.data;
   }
 };
