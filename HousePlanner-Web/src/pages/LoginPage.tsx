@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
-import { Box, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Box, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
 import { setMockAuth } from '../features/auth/authSlice';
+import useAuth from '../features/auth/useAuth';
 
 const LoginPage: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
@@ -12,6 +13,13 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +62,12 @@ const LoginPage: React.FC = () => {
         <div className="absolute top-[60%] -left-[10%] w-[30%] h-[30%] rounded-full bg-indigo-100/40 dark:bg-indigo-900/20 blur-3xl"></div>
       </div>
 
-      <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-gray-900 dark:text-white hover:text-blue-600 transition-colors z-10">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-          <Box className="text-white" size={18} />
+      <Link to="/" className="absolute top-8 left-8 flex items-center gap-3 hover:opacity-80 transition-opacity z-10">
+        <div className="w-8 h-8 relative flex items-center justify-center">
+          <Box className="absolute text-gray-900 dark:text-white transition-colors" size={24} strokeWidth={1.5} />
+          <Sparkles className="absolute text-yellow-600 -top-1 -right-1" size={12} />
         </div>
-        <span className="text-lg font-bold tracking-tight">HomePlanner<span className="text-blue-600">AI</span></span>
+        <span className="text-sm font-bold text-gray-900 dark:text-white tracking-[0.2em] transition-colors">HOMEPLANNER<span className="text-gray-400">AI</span></span>
       </Link>
 
       <motion.div 

@@ -8,7 +8,7 @@ interface PageContainerProps {
 
 export const PageContainer: React.FC<PageContainerProps> = ({ children }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50/50">
+    <div className="min-h-screen flex flex-col bg-[#fcfcfd] dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
       <div className="flex flex-1">
         <Sidebar />
