@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { Box, Lock, Mail, ArrowRight } from 'lucide-react';
 import { setMockAuth } from '../features/auth/authSlice';
+import useAuth from '../features/auth/useAuth';
 
 const LoginPage: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
@@ -12,6 +13,13 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();

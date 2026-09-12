@@ -1,20 +1,29 @@
 import React from 'react';
 import { LogOut, Home, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../features/auth/useAuth';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
+  };
 
   return (
     <header className="sticky top-0 z-30 w-full bg-white/70 backdrop-blur-xl border-b border-zinc-200/50 px-6 py-3.5 flex items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
       <div className="flex items-center gap-3">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-xl text-white shadow-md shadow-indigo-200">
-          <Home size={18} className="drop-shadow-sm" />
-        </div>
-        <div>
-          <span className="font-extrabold text-zinc-900 text-lg tracking-tight">HousePlanner</span>
-          <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest block leading-none ml-0.5 mt-0.5">Console</span>
-        </div>
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-xl text-white shadow-md shadow-indigo-200">
+            <Home size={18} className="drop-shadow-sm" />
+          </div>
+          <div>
+            <span className="font-extrabold text-zinc-900 text-lg tracking-tight">HousePlanner</span>
+            <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest block leading-none ml-0.5 mt-0.5">Console</span>
+          </div>
+        </Link>
       </div>
 
       {user && (
@@ -32,7 +41,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="group flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-500 hover:text-red-600 hover:bg-red-50/80 border border-transparent hover:border-red-100 transition-all shadow-sm hover:shadow"
           >
             <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform" />
