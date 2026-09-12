@@ -9,10 +9,17 @@ namespace HousePlanner.API.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
+        public DbSet<PricingData> PricingItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<PricingData>()
+                .OwnsOne(p => p.TerrainMultiplier, owned =>
+                {
+                    owned.ToJson();
+                });
         }
     }
 }
