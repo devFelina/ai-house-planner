@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Pencil,
@@ -12,29 +12,33 @@ import {
   TrendingUp,
   CalendarDays,
   DollarSign,
+  RefreshCw,
+  Loader2,
+  Lock,
 } from 'lucide-react';
+import pricingService from '../services/pricingService';
+import type { PricingItem as ApiPricingItem } from '../types/pricing.types';
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
 
-type PricingCategory =
-  | 'Structural'
-  | 'Finishing'
-  | 'Labour'
-  | 'MEP'
-  | 'Landscaping';
 
+/**
+ * Internal view-model used by this page.
+ * Maps from the backend shape (ApiPricingItem) to the flat structure
+ * the table and modal expect.
+ */
 interface PricingItem {
-  id: string;
-  name: string;
-  category: PricingCategory;
+  id: number;           // backend: id (number)
+  name: string;         // backend: itemName
+  category: string;     // backend: category (string, not union – categories come from DB)
   unit: string;
-  unitCost: number;
-  flatMultiplier: number;
-  hillsideMultiplier: number;
-  coastalMultiplier: number;
-  lastUpdated: string;
+  unitCost: number;     // backend: unitCostLkr
+  flatMultiplier: number;      // backend: terrainMultiplier.flat
+  hillsideMultiplier: number;  // backend: terrainMultiplier.hillside
+  coastalMultiplier: number;   // backend: terrainMultiplier.coastal
+  lastUpdated: string;  // backend: updatedAt (ISO-8601)
 }
 
 interface EditFormState {
@@ -52,155 +56,39 @@ interface ValidationErrors {
 }
 
 // ─────────────────────────────────────────────
-// Mock Data
+// Adapter: backend → view-model
 // ─────────────────────────────────────────────
 
-const INITIAL_PRICING_ITEMS: PricingItem[] = [
-  {
-    id: 'p-001',
-    name: 'Portland Cement (50 kg)',
-    category: 'Structural',
-    unit: 'Bag',
-    unitCost: 2150,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.18,
-    coastalMultiplier: 1.12,
-    lastUpdated: '2026-08-20',
-  },
-  {
-    id: 'p-002',
-    name: 'Tor Steel — 16mm Rebar',
-    category: 'Structural',
-    unit: 'MT',
-    unitCost: 185000,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.22,
-    coastalMultiplier: 1.15,
-    lastUpdated: '2026-08-15',
-  },
-  {
-    id: 'p-003',
-    name: 'Ceramic Floor Tile (600x600)',
-    category: 'Finishing',
-    unit: 'sqft',
-    unitCost: 320,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.10,
-    coastalMultiplier: 1.08,
-    lastUpdated: '2026-09-01',
-  },
-  {
-    id: 'p-004',
-    name: 'Granite Flooring',
-    category: 'Finishing',
-    unit: 'sqft',
-    unitCost: 650,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.12,
-    coastalMultiplier: 1.09,
-    lastUpdated: '2026-09-01',
-  },
-  {
-    id: 'p-005',
-    name: 'Skilled Construction Labour',
-    category: 'Labour',
-    unit: 'Day',
-    unitCost: 4500,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.30,
-    coastalMultiplier: 1.20,
-    lastUpdated: '2026-09-05',
-  },
-  {
-    id: 'p-006',
-    name: 'Unskilled Construction Labour',
-    category: 'Labour',
-    unit: 'Day',
-    unitCost: 2800,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.25,
-    coastalMultiplier: 1.15,
-    lastUpdated: '2026-09-05',
-  },
-  {
-    id: 'p-007',
-    name: 'River Sand',
-    category: 'Structural',
-    unit: 'Cube',
-    unitCost: 14500,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.20,
-    coastalMultiplier: 1.10,
-    lastUpdated: '2026-08-25',
-  },
-  {
-    id: 'p-008',
-    name: 'Electrical Wiring (PVC)',
-    category: 'MEP',
-    unit: 'm',
-    unitCost: 285,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.08,
-    coastalMultiplier: 1.14,
-    lastUpdated: '2026-08-10',
-  },
-  {
-    id: 'p-009',
-    name: 'Plumbing — CPVC Pipe (20mm)',
-    category: 'MEP',
-    unit: 'm',
-    unitCost: 420,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.10,
-    coastalMultiplier: 1.18,
-    lastUpdated: '2026-08-10',
-  },
-  {
-    id: 'p-010',
-    name: 'Interior Wall Paint (Dulux)',
-    category: 'Finishing',
-    unit: 'Litre',
-    unitCost: 1650,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.05,
-    coastalMultiplier: 1.07,
-    lastUpdated: '2026-09-03',
-  },
-  {
-    id: 'p-011',
-    name: 'Lawn Turf Grass',
-    category: 'Landscaping',
-    unit: 'sqft',
-    unitCost: 95,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.35,
-    coastalMultiplier: 1.12,
-    lastUpdated: '2026-08-30',
-  },
-  {
-    id: 'p-012',
-    name: 'Roof Sheet (Zinc Alum)',
-    category: 'Structural',
-    unit: 'Sheet',
-    unitCost: 3200,
-    flatMultiplier: 1.0,
-    hillsideMultiplier: 1.15,
-    coastalMultiplier: 1.22,
-    lastUpdated: '2026-08-18',
-  },
-];
+function toViewModel(api: ApiPricingItem): PricingItem {
+  return {
+    id: api.id,
+    name: api.itemName,
+    category: api.category,
+    unit: api.unit,
+    unitCost: api.unitCostLkr,
+    flatMultiplier: api.terrainMultiplier.flat,
+    hillsideMultiplier: api.terrainMultiplier.hillside,
+    coastalMultiplier: api.terrainMultiplier.coastal,
+    lastUpdated: api.updatedAt,
+  };
+}
 
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
-const CATEGORY_COLORS: Record<PricingCategory, string> = {
+const CATEGORY_COLORS: Record<string, string> = {
   Structural: 'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
   Finishing: 'bg-violet-50 text-violet-700 ring-1 ring-violet-100',
   Labour: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
   MEP: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
   Landscaping: 'bg-teal-50 text-teal-700 ring-1 ring-teal-100',
 };
+
+/** Returns a colour class for any category string, with a neutral fallback. */
+function getCategoryColor(category: string): string {
+  return CATEGORY_COLORS[category] ?? 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
+}
 
 function formatCurrency(value: number): string {
   return `LKR ${value.toLocaleString('en-LK')}`;
@@ -294,10 +182,15 @@ const MultiplierBadge: React.FC<MultiplierBadgeProps> = ({ value }) => {
 interface EditModalProps {
   item: PricingItem;
   onClose: () => void;
-  onSave: (updated: PricingItem) => void;
+  /**
+   * Called only when the PUT /pricing/{id} backend call succeeds.
+   * While shared auth is not yet wired, this will show a 401 error
+   * without updating local state (no fake save).
+   */
+  onSaveSuccess: (updated: PricingItem) => void;
 }
 
-const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
+const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSaveSuccess }) => {
   const [form, setForm] = useState<EditFormState>({
     unitCost: String(item.unitCost),
     flatMultiplier: String(item.flatMultiplier),
@@ -305,26 +198,55 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
     coastalMultiplier: String(item.coastalMultiplier),
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleChange = (field: keyof EditFormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setSaveError(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const validationErrors = validateEditForm(form);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    onSave({
-      ...item,
-      unitCost: parseFloat(form.unitCost),
-      flatMultiplier: parseFloat(form.flatMultiplier),
-      hillsideMultiplier: parseFloat(form.hillsideMultiplier),
-      coastalMultiplier: parseFloat(form.coastalMultiplier),
-      lastUpdated: new Date().toISOString().slice(0, 10),
-    });
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      /**
+       * PUT /pricing/{id}
+       * ⚠ INTEGRATION DEPENDENCY: Requires [Authorize(Roles = "Contractor")].
+       * The shared ASP.NET JWT authentication scheme (Member 1) is not yet
+       * implemented end-to-end. This call will return 401 until the token
+       * exchange is complete. The backend [Authorize] attribute is intentionally
+       * preserved — do not remove it.
+       */
+      const updated = await pricingService.update(item.id, {
+        unitCostLkr: parseFloat(form.unitCost),
+        terrainMultiplier: {
+          flat: parseFloat(form.flatMultiplier),
+          hillside: parseFloat(form.hillsideMultiplier),
+          coastal: parseFloat(form.coastalMultiplier),
+        },
+      });
+      onSaveSuccess(toViewModel(updated));
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
+        setSaveError(
+          'Save requires Contractor authentication. The shared JWT auth scheme has not yet been implemented by Member 1 — this endpoint will unlock once it is complete.'
+        );
+      } else {
+        setSaveError('Failed to save changes. Please try again.');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fields: { key: keyof EditFormState; label: string; help: string }[] = [
@@ -368,7 +290,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
               </p>
               <h2 className="text-xl font-bold text-slate-900 leading-snug">{item.name}</h2>
               <div className="flex items-center gap-2 mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${CATEGORY_COLORS[item.category]}`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${getCategoryColor(item.category)}`}>
                   {item.category}
                 </span>
                 <span className="text-xs text-slate-400">per {item.unit}</span>
@@ -383,6 +305,24 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
             </button>
           </div>
         </div>
+
+        {/* Auth dependency notice */}
+        <div className="mx-8 mt-5 flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+          <Lock size={13} className="mt-0.5 flex-shrink-0 text-amber-500" />
+          <p className="text-[11px] text-amber-700 leading-relaxed">
+            <span className="font-semibold">Integration dependency:</span> Saving requires
+            Contractor JWT authentication (Member 1). Save will return 401 until the shared
+            auth scheme is complete.
+          </p>
+        </div>
+
+        {/* Save error banner */}
+        {saveError && (
+          <div className="mx-8 mt-3 flex items-start gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3">
+            <AlertCircle size={13} className="mt-0.5 flex-shrink-0 text-red-500" />
+            <p className="text-[11px] text-red-600 leading-relaxed">{saveError}</p>
+          </div>
+        )}
 
         {/* Modal Body */}
         <div className="px-8 py-6 space-y-5">
@@ -401,7 +341,8 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
                 min="0"
                 value={form[key]}
                 onChange={handleChange(key)}
-                className={`w-full bg-slate-50 border rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-indigo-400/40 ${
+                disabled={saving}
+                className={`w-full bg-slate-50 border rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-indigo-400/40 disabled:opacity-60 ${
                   errors[key]
                     ? 'border-red-300 ring-1 ring-red-200'
                     : 'border-slate-200 focus:border-indigo-300'
@@ -422,16 +363,19 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
         <div className="px-8 pb-7 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
+            id="modal-save-btn"
             onClick={handleSave}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white transition-all custom-shadow-sm"
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white transition-all custom-shadow-sm disabled:opacity-60"
           >
-            <Save size={14} />
-            Save Changes
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -456,20 +400,41 @@ const TABLE_COLUMNS = [
 ];
 
 const PricingManagementPage: React.FC = () => {
-  const [items, setItems] = useState<PricingItem[]>(INITIAL_PRICING_ITEMS);
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<PricingCategory | 'All'>('All');
-  const [editingItem, setEditingItem] = useState<PricingItem | null>(null);
-  const [savedItemId, setSavedItemId] = useState<string | null>(null);
+  // ── Data / async state ──
+  const [items, setItems] = useState<PricingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const categories: Array<PricingCategory | 'All'> = [
-    'All',
-    'Structural',
-    'Finishing',
-    'Labour',
-    'MEP',
-    'Landscaping',
-  ];
+  // ── UI state ──
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [editingItem, setEditingItem] = useState<PricingItem | null>(null);
+  const [savedItemId, setSavedItemId] = useState<number | null>(null);
+
+  // ── Fetch on mount ──
+  const fetchPricing = async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const data = await pricingService.getAll();
+      setItems(data.map(toViewModel));
+    } catch {
+      setFetchError('Could not load pricing data. Make sure the backend is running and reachable.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPricing();
+  }, []);
+
+  // ── Derived data ──
+  // Build category pill list dynamically from what the API returned.
+  const categories = useMemo(() => {
+    const unique = [...new Set(items.map((i) => i.category))].sort();
+    return ['All', ...unique];
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -490,13 +455,73 @@ const PricingManagementPage: React.FC = () => {
     [items]
   );
 
-  const handleSave = (updated: PricingItem) => {
+  // ── Handlers ──
+  const handleSaveSuccess = (updated: PricingItem) => {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
     setSavedItemId(updated.id);
     setEditingItem(null);
     setTimeout(() => setSavedItemId(null), 2500);
   };
 
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.2em] text-indigo-500 uppercase mb-2">Cost Estimator</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">Pricing Management</h1>
+            <p className="text-sm text-slate-400 font-light max-w-lg leading-relaxed">
+              Manage the base unit costs and terrain multipliers used by the HousePlanner AI cost
+              estimation system.
+            </p>
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold">
+            <DollarSign size={14} />
+            <span>LKR Pricing Table</span>
+          </div>
+        </div>
+        {/* Loading indicator */}
+        <div className="bg-white rounded-2xl border border-slate-100 custom-shadow-sm flex flex-col items-center justify-center py-24 gap-4">
+          <Loader2 size={32} className="animate-spin text-indigo-400" />
+          <p className="text-sm font-medium text-slate-500">Loading pricing data…</p>
+          <p className="text-xs text-slate-400">Fetching from the HousePlanner backend.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error state ──
+  if (fetchError) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.2em] text-indigo-500 uppercase mb-2">Cost Estimator</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">Pricing Management</h1>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-red-100 custom-shadow-sm flex flex-col items-center justify-center py-24 gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
+            <AlertCircle size={22} className="text-red-400" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">Failed to load pricing data</p>
+          <p className="text-xs text-slate-400 max-w-sm text-center">{fetchError}</p>
+          <button
+            id="pricing-retry-btn"
+            onClick={fetchPricing}
+            className="inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            <RefreshCw size={13} />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main render ──
   return (
     <div className="space-y-8">
       {/* ── Page Header ── */}
@@ -531,7 +556,7 @@ const PricingManagementPage: React.FC = () => {
           icon={<Layers size={18} />}
           label="Categories"
           value={String(uniqueCategories)}
-          sub="Structural, Labour, MEP..."
+          sub="Structural, Labour, MEP…"
         />
         <SummaryCard
           icon={<CalendarDays size={18} />}
@@ -554,7 +579,7 @@ const PricingManagementPage: React.FC = () => {
             <input
               id="pricing-search"
               type="text"
-              placeholder="Search items, categories..."
+              placeholder="Search items, categories…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 outline-none focus:bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-400/30 transition-all"
@@ -570,7 +595,7 @@ const PricingManagementPage: React.FC = () => {
             )}
           </div>
 
-          {/* Category pill filters */}
+          {/* Category pill filters — built from live API data */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {categories.map((cat) => (
               <button
@@ -607,8 +632,21 @@ const PricingManagementPage: React.FC = () => {
             </thead>
 
             <tbody className="divide-y divide-slate-50">
-              {filteredItems.length === 0 ? (
-                /* Empty state */
+              {items.length === 0 ? (
+                /* Empty state — API returned zero rows */
+                <tr>
+                  <td colSpan={TABLE_COLUMNS.length} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3 text-slate-400">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                        <Box size={20} className="text-slate-300" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-500">No pricing items in the database</p>
+                      <p className="text-xs text-slate-400">Add seed data to the backend to populate this table.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredItems.length === 0 ? (
+                /* Empty state — filters produced no results */
                 <tr>
                   <td colSpan={TABLE_COLUMNS.length} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center gap-3 text-slate-400">
@@ -616,14 +654,9 @@ const PricingManagementPage: React.FC = () => {
                         <Box size={20} className="text-slate-300" />
                       </div>
                       <p className="text-sm font-medium text-slate-500">No pricing items found</p>
-                      <p className="text-xs text-slate-400">
-                        Try adjusting your search or category filter.
-                      </p>
+                      <p className="text-xs text-slate-400">Try adjusting your search or category filter.</p>
                       <button
-                        onClick={() => {
-                          setSearch('');
-                          setSelectedCategory('All');
-                        }}
+                        onClick={() => { setSearch(''); setSelectedCategory('All'); }}
                         className="mt-1 text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors"
                       >
                         Clear filters
@@ -658,9 +691,7 @@ const PricingManagementPage: React.FC = () => {
 
                     {/* Category */}
                     <td className="px-4 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${CATEGORY_COLORS[item.category]}`}
-                      >
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${getCategoryColor(item.category)}`}>
                         {item.category}
                       </span>
                     </td>
@@ -680,19 +711,13 @@ const PricingManagementPage: React.FC = () => {
                     </td>
 
                     {/* Flat Multiplier */}
-                    <td className="px-4 py-4">
-                      <MultiplierBadge value={item.flatMultiplier} />
-                    </td>
+                    <td className="px-4 py-4"><MultiplierBadge value={item.flatMultiplier} /></td>
 
                     {/* Hillside Multiplier */}
-                    <td className="px-4 py-4">
-                      <MultiplierBadge value={item.hillsideMultiplier} />
-                    </td>
+                    <td className="px-4 py-4"><MultiplierBadge value={item.hillsideMultiplier} /></td>
 
                     {/* Coastal Multiplier */}
-                    <td className="px-4 py-4">
-                      <MultiplierBadge value={item.coastalMultiplier} />
-                    </td>
+                    <td className="px-4 py-4"><MultiplierBadge value={item.coastalMultiplier} /></td>
 
                     {/* Last Updated */}
                     <td className="px-4 py-4">
@@ -742,7 +767,7 @@ const PricingManagementPage: React.FC = () => {
         <EditModal
           item={editingItem}
           onClose={() => setEditingItem(null)}
-          onSave={handleSave}
+          onSaveSuccess={handleSaveSuccess}
         />
       )}
     </div>
