@@ -6,7 +6,7 @@ the workflow state with terrain results. If no photo URL is available,
 uses the manual terrain fallback from the coordinator.
 """
 import requests
-from app.schemas.workflow_agent import WorkflowState, ExecutionLogEntry
+from app.schemas.workflow_state import WorkflowState, ExecutionLogEntry
 from app.tools.vision_classify_tool import vision_classify_tool
 from app.config import ASPNET_API_URL, INTERNAL_API_KEY
 from datetime import datetime, timezone
