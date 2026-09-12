@@ -38,11 +38,11 @@ def land_analysis_node(state: WorkflowState) -> WorkflowState:
         if not photo_url:
             # No photo available — use safe default
             state.terrain_result = {
-                "terrain_type": "flat",
+                "terrain_type": "unknown",
                 "slope_estimate": "unknown",
                 "notable_features": ["no_photo_provided"]
             }
-            action = "No photo URL available — defaulted to flat terrain"
+            action = "No photo URL available — terrain unknown; manual classification required"
         else:
             # Call the vision classification tool
             terrain_result = vision_classify_tool(photo_url)
@@ -60,7 +60,7 @@ def land_analysis_node(state: WorkflowState) -> WorkflowState:
         action=action,
         tool_called=tool,
         duration_ms=duration,
-        result="success",
+        result="manual_terrain_required" if state.terrain_result.get("terrain_type") == "unknown" else "success",
         created_at_utc=datetime.now(timezone.utc).isoformat()
     ))
 
@@ -76,7 +76,7 @@ def _persist_terrain(state: WorkflowState):
     try:
         headers = {"X-Internal-API-Key": INTERNAL_API_KEY}
         payload = {
-            "terrain_type": state.terrain_result.get("terrain_type", "flat"),
+            "terrain_type": state.terrain_result.get("terrain_type", "unknown"),
             "slope_estimate": state.terrain_result.get("slope_estimate", "unknown"),
             "notable_features": state.terrain_result.get("notable_features", [])
         }

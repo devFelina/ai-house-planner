@@ -15,9 +15,8 @@ namespace HousePlanner.API.Entities
         [ForeignKey("ClientId")]
         public virtual User Client{get;set;}=null!;
 
-        [Required]
         [Column(TypeName="decimal(14,2)")]
-        public decimal BudgetLkr {get;set;}
+        public decimal? BudgetLkr {get;set;}
 
         [Required]
         [Column(TypeName="decimal(10,2)")]

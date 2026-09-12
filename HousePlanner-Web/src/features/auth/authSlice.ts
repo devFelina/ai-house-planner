@@ -131,7 +131,7 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.error = null;
       })
-      .addCase(verifySessionAsync.rejected, (state, action) => {
+      .addCase(verifySessionAsync.rejected, (state) => {
         state.status = 'failed';
         // We do not set error state here as a failed session verify just means the user isn't logged in.
         state.user = null;

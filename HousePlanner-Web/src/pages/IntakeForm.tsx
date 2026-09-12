@@ -12,6 +12,9 @@ interface IntakeFormData {
   bedrooms: string;
   floors: string;
   architecturalStyle: string;
+  plotWidth: string;
+  plotLength: string;
+  roadSide: string;
 }
 
 const IntakeForm: React.FC = () => {
@@ -25,6 +28,9 @@ const IntakeForm: React.FC = () => {
     bedrooms: '3',
     floors: '1',
     architecturalStyle: 'Modern Minimalist',
+    plotWidth: '',
+    plotLength: '',
+    roadSide: 'south',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,17 +56,29 @@ const IntakeForm: React.FC = () => {
 
     try {
       // Construct payload for Python Agentic Service
-      const payload = {
+      const parsedBudget = parseFloat(formData.budget);
+      const payload: any = {
         submission_id: crypto.randomUUID(),
-        budget_lkr: parseFloat(formData.budget) || 15000000,
         land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
         manual_terrain_type: formData.terrainType,
         preferences: {
           bedrooms: parseInt(formData.bedrooms) || 3,
           floors: parseInt(formData.floors) || 1,
-          architecturalStyle: formData.architecturalStyle
+          style: formData.architecturalStyle
         }
       };
+
+      payload.plot_constraints = {
+        road_side: formData.roadSide,
+        ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
+        ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
+      };
+      
+      payload.design_seed = Math.floor(Math.random() * 1000000);
+
+      if (!isNaN(parsedBudget)) {
+        payload.budget_lkr = parsedBudget;
+      }
 
       // Call Python LangGraph API directly to start the workflow
       const response = await fetch('http://127.0.0.1:8001/workflows/start', {
@@ -102,7 +120,7 @@ const IntakeForm: React.FC = () => {
         </motion.div>
         <h2 className="text-3xl font-extrabold text-zinc-900 mb-3 tracking-tight">AI Plan Generated!</h2>
         <p className="text-zinc-500 mb-8 text-lg font-medium">
-          The AI Architect has processed your requirements and successfully generated a 2D structural floor plan.
+          The AI Architect has processed your requirements and started generating your conceptual floor plan.
         </p>
         <button 
           onClick={() => navigate(`/dashboard/workflows/${workflowId}`)}
@@ -144,11 +162,10 @@ const IntakeForm: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Budget (LKR)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Budget (LKR) <span className="text-gray-400 font-normal">(Optional)</span></label>
               <input 
                 type="number" 
                 name="budget"
-                required
                 placeholder="e.g. 15000000"
                 value={formData.budget}
                 onChange={handleInputChange}
@@ -221,6 +238,52 @@ const IntakeForm: React.FC = () => {
                 <option value="hillside">Hillside / Sloped</option>
                 <option value="coastal">Coastal</option>
                 <option value="forested">Forested</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-zinc-50/80 rounded-2xl border border-zinc-100/80 space-y-5 relative z-10 hover:shadow-sm transition-shadow">
+          <h3 className="font-bold text-zinc-900 flex items-center gap-2.5 text-lg">
+            <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><Layers size={18} /></div>
+            Plot Constraints (Optional)
+          </h3>
+          <p className="text-sm text-gray-500 -mt-2">Missing dimensions will be estimated for conceptual planning.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plot Width (ft)</label>
+              <input 
+                name="plotWidth" 
+                type="number" 
+                min="1" 
+                step="any"
+                value={formData.plotWidth} 
+                onChange={handleInputChange} 
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-indigo-500" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plot Length (ft)</label>
+              <input 
+                name="plotLength" 
+                type="number" 
+                min="1" 
+                step="any"
+                value={formData.plotLength} 
+                onChange={handleInputChange} 
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-indigo-500" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Road Side</label>
+              <select 
+                name="roadSide" 
+                value={formData.roadSide} 
+                onChange={handleInputChange} 
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-indigo-500"
+              >
+                {['south', 'north', 'east', 'west'].map(side => <option key={side} value={side}>{side.charAt(0).toUpperCase() + side.slice(1)}</option>)}
               </select>
             </div>
           </div>

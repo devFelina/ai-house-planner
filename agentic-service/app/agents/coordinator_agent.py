@@ -32,7 +32,7 @@ def coordinator_node(state: WorkflowState) -> WorkflowState:
             "coastal": "coastal",
         }
         normalized_terrain = terrain_mapping.get(
-            input_data.manual_terrain_type.lower(), "flat"
+            input_data.manual_terrain_type.lower(), "unknown"
         )
 
         # Pre-fill the terrain result for the Design agent

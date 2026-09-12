@@ -12,10 +12,12 @@ class ExecutionLogEntry(BaseModel):
 
 class CoordinatorInput(BaseModel):
     submission_id:UUID
-    budget_lkr:float
+    budget_lkr:Optional[float]=None
     land_size_perches:float
     manual_terrain_type:Optional[str]=None
     preferences:Dict[str,Any]
+    plot_constraints:Optional[Dict[str,Any]]=None
+    design_seed:Optional[int]=None
 
 class WorkflowState(BaseModel):
     workflow_id:UUID

@@ -156,7 +156,7 @@ const ProceduralHouse = () => {
   );
 };
 
-const ExternalHouseModel = ({ url }: { url: string }) => {
+export const ExternalHouseModel = ({ url }: { url: string }) => {
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
   

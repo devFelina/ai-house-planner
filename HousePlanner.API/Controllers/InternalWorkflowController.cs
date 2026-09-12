@@ -57,7 +57,6 @@ public class InternalWorkflowController : ControllerBase
         {
             Id = landId,
             ClientId = dummyUser.Id,
-            BudgetLkr = 15000000,
             LandSizePerches = 10,
             PreferredBedrooms = 3,
             PreferredFloors = 1,
@@ -179,6 +178,19 @@ public class InternalWorkflowController : ControllerBase
             _logger.LogError(ex, "Error saving design for workflow {WorkflowId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred saving the design." });
         }
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> UpdateGenerationStatus(Guid id, [FromBody] JsonElement data)
+    {
+        if (!data.TryGetProperty("status", out var status) || status.GetString() != "failed")
+            return BadRequest(new { message = "This endpoint accepts only generation failure." });
+        var workflow = await EnsureWorkflowStateExists(id);
+        workflow.Status = "failed";
+        workflow.ApprovalStatus = "not_requested";
+        workflow.UpdatedAt = DateTimeOffset.UtcNow;
+        await _context.SaveChangesAsync();
+        return Ok(new { status = workflow.Status });
     }
 
     /// <summary>

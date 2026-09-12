@@ -35,6 +35,18 @@ export interface HouseDesignSummaryDto {
   terrainType: string | null;
   isCurrent: boolean;
   rooms: RoomSummaryDto[];
+  templateFamily?: string | null;
+  designSeed?: number | null;
+  designScore?: number | null;
+  groundFootprintSqft?: number | null;
+  entrances?: { room_id: string; wall: OpeningDto['wall']; offset: number; width: number }[];
+  plotConstraints?: { dimensions_estimated?: boolean };
+  candidateSummary?: { 
+    notes?: string[],
+    valid_count?: number,
+    rejected_count?: number
+  };
+
 }
 
 export interface WorkflowStatusResponseDto {
