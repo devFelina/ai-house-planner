@@ -29,7 +29,8 @@ workflow.add_conditional_edges(
     route_from_coordinator,
     {
         "land_analysis": "land_analysis",
-        "design": "design"
+        "design": "design",
+        "rendering": "rendering"
     }
 )
 
@@ -39,6 +40,6 @@ workflow.add_conditional_edges(
     {"failed": END, "cost_estimation": "cost_estimation"},
 )
 workflow.add_edge("cost_estimation", "validation")
-workflow.add_edge("validation", "rendering")  # Output plan regardless of validation success
+workflow.add_edge("validation", END)
 workflow.add_edge("rendering", END)
 app_graph = workflow.compile()

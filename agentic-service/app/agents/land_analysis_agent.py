@@ -81,7 +81,7 @@ def _persist_terrain(state: WorkflowState):
             "notable_features": state.terrain_result.get("notable_features", [])
         }
         response = requests.patch(
-            f"{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/terrain",
+            f"{ASPNET_API_URL}/api/v1/internal/workflows/{state.workflow_id}/terrain",
             json=payload,
             headers=headers,
             timeout=5,

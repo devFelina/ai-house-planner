@@ -271,6 +271,15 @@ public class WorkflowController : ControllerBase
             workflow.UpdatedAt = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync();
             
+            var payload = new {
+                workflow_id = id,
+                resume_from = "rendering"
+            };
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            _agenticServiceClient.DefaultRequestHeaders.Clear();
+            _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
+            await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/resume", content);
+            
             return Ok(new { Message = "Workflow approved successfully" });
         }
         else if (request.Decision == "reject")

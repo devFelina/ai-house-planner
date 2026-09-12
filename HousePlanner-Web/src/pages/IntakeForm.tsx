@@ -57,35 +57,29 @@ const IntakeForm: React.FC = () => {
     try {
       // Construct payload for Python Agentic Service
       const parsedBudget = parseFloat(formData.budget);
-      const payload: any = {
-        submission_id: crypto.randomUUID(),
-        land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
-        manual_terrain_type: formData.terrainType,
+      const payload = {
+        budgetLkr: parsedBudget,
+        landSizePerches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
+        manualTerrainType: formData.terrainType,
         preferences: {
           bedrooms: parseInt(formData.bedrooms) || 3,
           floors: parseInt(formData.floors) || 1,
-          style: formData.architecturalStyle
-        }
+          architecturalStyle: formData.architecturalStyle,
+          landUnit: formData.landUnit
+        },
+        plotConstraints: {
+          road_side: formData.roadSide,
+          ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
+          ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
+        },
+        designSeed: Math.floor(Math.random() * 1000000)
       };
 
-      payload.plot_constraints = {
-        road_side: formData.roadSide,
-        ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
-        ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
-      };
-      
-      payload.design_seed = Math.floor(Math.random() * 1000000);
-
-      if (!isNaN(parsedBudget)) {
-        payload.budget_lkr = parsedBudget;
-      }
-
-      // Call Python LangGraph API directly to start the workflow
-      const response = await fetch('http://127.0.0.1:8001/workflows/start', {
+      // Call ASP.NET Core API to start the workflow
+      const response = await fetch('http://localhost:5265/api/AiGeneration/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Internal-API-Key': 'shared-internal-secret' // Required by Python API
         },
         body: JSON.stringify(payload),
       });
@@ -97,7 +91,7 @@ const IntakeForm: React.FC = () => {
       const result = await response.json();
       console.log('AI Coordinator Result:', result);
       
-      setWorkflowId(result.workflow_id);
+      setWorkflowId(result.workflowId);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);
