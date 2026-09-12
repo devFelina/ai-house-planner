@@ -57,31 +57,43 @@ const IntakeForm: React.FC = () => {
     try {
       // Construct payload for Python Agentic Service
       const parsedBudget = parseFloat(formData.budget);
-      const payload = {
-        budgetLkr: parsedBudget,
-        landSizePerches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
-        manualTerrainType: formData.terrainType,
+      const payload: any = {
+        submission_id: crypto.randomUUID(),
+        land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
+        manual_terrain_type: formData.terrainType,
         preferences: {
           bedrooms: parseInt(formData.bedrooms) || 3,
           floors: parseInt(formData.floors) || 1,
-          architecturalStyle: formData.architecturalStyle,
-          landUnit: formData.landUnit
-        },
-        plotConstraints: {
-          road_side: formData.roadSide,
-          ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
-          ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
-        },
-        designSeed: Math.floor(Math.random() * 1000000)
+          style: formData.architecturalStyle
+        }
       };
 
-      // Call ASP.NET Core API to start the workflow
-      const response = await fetch('http://localhost:5265/api/AiGeneration/generate', {
+      payload.plot_constraints = {
+        road_side: formData.roadSide,
+        ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
+        ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
+      };
+      
+      payload.design_seed = Math.floor(Math.random() * 1000000);
+
+      if (!isNaN(parsedBudget)) {
+        payload.budget_lkr = parsedBudget;
+      }
+
+      // Call ASP.NET API
+      const response = await fetch('http://localhost:5265/api/aigeneration/generate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          BudgetLkr: payload.budget_lkr,
+          LandSizePerches: payload.land_size_perches,
+          ManualTerrainType: payload.manual_terrain_type,
+          Preferences: payload.preferences,
+          PlotConstraints: payload.plot_constraints,
+          DesignSeed: payload.design_seed
+        }),
       });
 
       if (!response.ok) {
@@ -91,7 +103,7 @@ const IntakeForm: React.FC = () => {
       const result = await response.json();
       console.log('AI Coordinator Result:', result);
       
-      setWorkflowId(result.workflowId);
+      setWorkflowId(result.WorkflowId || result.workflowId);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);

@@ -236,8 +236,11 @@ public class WorkflowController : ControllerBase
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveWorkflow(Guid id, [FromBody] ApprovalRequestDto request)
     {
-        var workflow = await _context.WorkflowStates.FindAsync(id);
-        if (workflow == null) return NotFound();
+        var workflow = await _context.WorkflowStates
+            .Include(w => w.LandSubmission)
+            .Include(w => w.HouseDesigns)
+            .FirstOrDefaultAsync(w => w.Id == id);
+        if (workflow == null || workflow.LandSubmission == null) return NotFound();
 
         if (request.Decision == "request_revision")
         {
@@ -249,7 +252,20 @@ public class WorkflowController : ControllerBase
             var payload = new {
                 workflow_id = id,
                 resume_from = "design",
-                user_revision_prompt = request.RevisionNotes // Pass the chat text to the AI
+                user_revision_prompt = request.RevisionNotes, // Pass the chat text to the AI
+                budget_lkr = workflow.LandSubmission.BudgetLkr,
+                land_size_perches = workflow.LandSubmission.LandSizePerches,
+                manual_terrain_type = workflow.LandSubmission.ManualTerrainType,
+                preferences = new {
+                    bedrooms = workflow.LandSubmission.PreferredBedrooms,
+                    floors = workflow.LandSubmission.PreferredFloors,
+                    style = workflow.LandSubmission.StylePreference
+                },
+                terrain_result = new {
+                    terrain_type = workflow.TerrainType,
+                    slope_estimate = workflow.SlopeEstimate
+                },
+                previous_design = workflow.HouseDesigns.OrderByDescending(d => d.Version).FirstOrDefault()?.LayoutJson
             };
             
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
@@ -270,15 +286,6 @@ public class WorkflowController : ControllerBase
             
             workflow.UpdatedAt = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync();
-            
-            var payload = new {
-                workflow_id = id,
-                resume_from = "rendering"
-            };
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            _agenticServiceClient.DefaultRequestHeaders.Clear();
-            _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
-            await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/resume", content);
             
             return Ok(new { Message = "Workflow approved successfully" });
         }

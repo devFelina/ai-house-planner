@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from app.tools.layout_generation_tool import generate_layout
 from app.design.candidate_generator import GenerationFailure
-from app.schemas.workflow_agent import CoordinatorInput, WorkflowState
+from app.schemas.workflow_state import CoordinatorInput, WorkflowState
 from app.agents.design_agent import design_node
 from app.workflows.house_planning_graph import app_graph
 

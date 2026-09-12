@@ -10,8 +10,9 @@ import pytest
 from app.schemas.design_result import RoomLayout, DesignResult
 from app.tools.geometry_validator import validate_geometry
 from app.tools.land_utils import max_buildable_area, SQFT_PER_PERCH, MAX_COVERAGE_RATIO
+from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
 from app.tools.layout_generation_tool import (
-    select_template, _mock_layout, TERRAIN_FOUNDATION_MAP
+    select_template, _mock_layout
 )
 from app.tools.vision_classify_tool import _parse_terrain_result, _safe_fallback
 

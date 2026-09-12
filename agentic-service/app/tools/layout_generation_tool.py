@@ -1,9 +1,10 @@
-"""Constrained AI concept advice followed by deterministic procedural planning."""
+from typing import Optional, Union
+"""Generative AI layout planner with procedural fallback."""
 import json
+import uuid
 from app.config import GOOGLE_API_KEY
 from app.design.candidate_generator import GenerationFailure, select_best
-from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
-from app.design.models import ConceptAdvice, Requirements
+from app.design.models import Requirements
 from app.design.plot_constraints import PlotConstraints
 from app.design.spatial_program import build_program
 from app.design.topology_registry import eligible_topologies, topology_dict
@@ -11,19 +12,21 @@ from app.schemas.design_result import DesignResult
 from app.tools.geometry_validator import validate_geometry
 from app.tools.land_utils import SQFT_PER_PERCH, MAX_COVERAGE_RATIO
 
-SYSTEM_PROMPT = """You advise on concepts for a university conceptual home planner.
-Return only JSON matching the provided schema. Recommend eligible topology families
-using plot shape, room program, adjacency, public/private zoning, entrance, terrain,
-preferences, notable land features and revision feedback. No coordinates, dimensions,
-structural engineering, geometry validity claims or construction/code approval.
-Python generates geometry and deterministic validation is the final authority.
-Preferred families only influence the bounded search; final quality scoring is deterministic.
+SYSTEM_PROMPT = """You are the Design Agent of an AI-Assisted Home Design & Cost Planner.
+Your responsibility is to generate a VALID conceptual 2D house floor plan based on the plot constraints, requirements, and spatial program provided.
+
+This is a university-level planning and estimation system. The generated design is NOT construction-ready architectural documentation. It is a conceptual floor plan used for visualization, cost estimation, validation, and design revision.
+
+IMPORTANT:
+The application uses deterministic geometry validation after your response. Therefore, correctness and constraint satisfaction are more important than creativity.
+Rooms on the same floor must never overlap.
+Keep every room within the maximum building dimensions provided in the plot constraints.
+Generate coordinates (x, y) starting from (0,0) at the bottom-left corner.
 """
 
-
 def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dict,
-                   plot_constraints: dict | PlotConstraints | None = None,
-                   design_seed: int | None = None) -> tuple[Requirements, PlotConstraints]:
+                   plot_constraints: Union[dict, Optional[PlotConstraints]] = None,
+                   design_seed: Optional[int] = None) -> tuple[Requirements, PlotConstraints]:
     values = dict(preferences)
     if 'architecturalStyle' in values and 'style' not in values:
         values['style'] = values.pop('architecturalStyle')
@@ -46,65 +49,78 @@ def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dic
 
 
 def generate_layout(land_size_perches: float, terrain_type: str, preferences: dict,
-                    previous_design: dict | None = None, revision_reason: str | None = None,
-                    *, plot_constraints: dict | PlotConstraints | None = None,
-                    design_seed: int | None = None) -> DesignResult:
+                    previous_design: Optional[dict] = None, revision_reason: Optional[str] = None,
+                    *, plot_constraints: Union[dict, Optional[PlotConstraints]] = None,
+                    design_seed: Optional[int] = None) -> DesignResult:
     try:
         req, plot = prepare_inputs(land_size_perches, terrain_type, preferences, plot_constraints, design_seed)
     except (ValueError, TypeError) as exc:
         raise GenerationFailure(f'Invalid design requirements: {exc}') from exc
-    advice = None
+        
     mode = 'procedural_no_api_key'
-    # A supplied seed is a reproducibility contract: remote nondeterminism cannot
-    # change its candidate set. Unseeded requests may use AI concept advice.
-    if req.design_seed is not None:
-        mode = 'procedural_seeded'
-    elif GOOGLE_API_KEY and plot.terrain_type != 'unknown':
+    result = None
+
+    if GOOGLE_API_KEY and plot.terrain_type != 'unknown':
         prompt = json.dumps({'plot': plot.model_dump(), 'requirements': req.model_dump(),
                              'eligible_families': [topology_dict(t) for t in eligible_topologies(req, plot)],
                              'spatial_program': build_program(req).model_dump(),
-                             'previous_concept': (previous_design or {}).get('template_family'),
-                             'revision_feedback': revision_reason,
-                             'response_schema': ConceptAdvice.model_json_schema()})
+                             'previous_design': previous_design,
+                             'revision_feedback': revision_reason})
         try:
             from google import genai
             from google.genai import types
-            client = genai.Client(api_key=GOOGLE_API_KEY, http_options=types.HttpOptions(timeout=15000))
+            client = genai.Client(api_key=GOOGLE_API_KEY, http_options=types.HttpOptions(timeout=25000))
             try:
-                for _ in range(2):
-                    data = _parse_design_result(_call_gemini_design(client, prompt))
+                for attempt in range(3):
                     try:
-                        advice = ConceptAdvice.model_validate(data)
-                        eligible = {t.name for t in eligible_topologies(req, plot)}
-                        if not set(advice.preferred_families) <= eligible:
-                            raise ValueError('Ineligible family')
-                        mode = 'ai_concept_advice'
-                        break
-                    except (ValueError, TypeError):
-                        advice = None
-                        prompt += '\nPrevious advice failed the schema/eligibility check. Return only eligible concept JSON.'
-                if advice is None:
-                    mode = 'procedural_invalid_ai_advice'
+                        data = _parse_design_result(_call_gemini_design(client, prompt))
+                        if not data:
+                            raise ValueError("Invalid JSON response")
+                        
+                        # Populate missing required fields if LLM missed them
+                        if 'design_id' not in data:
+                            data['design_id'] = str(uuid.uuid4())
+                        if 'template_id' not in data:
+                            data['template_id'] = "CUSTOM_AI"
+                            
+                        candidate = DesignResult.model_validate(data)
+                        check = validate_geometry(candidate.rooms, req.bedrooms, req.floors, land_size_perches, plot=plot, design=candidate)
+                        
+                        if check.passed:
+                            result = candidate
+                            mode = 'ai_generative'
+                            break
+                        else:
+                            prompt += f'\nPrevious generation failed validation: {check.failures}. Please fix overlaps and boundary issues.'
+                    except (ValueError, TypeError) as exc:
+                        prompt += f'\nPrevious generation failed schema validation: {exc}. Please return valid JSON matching the schema.'
             finally:
                 client.close()
-        except Exception:
+        except Exception as e:
+            print(f"Generative API failed: {e}")
             mode = 'procedural_api_unavailable'
-    result = select_best(req, plot, advice)
-    # Validate again at the tool boundary, including metadata, before returning.
-    check = validate_geometry(result.rooms, req.bedrooms, req.floors, land_size_perches, plot=plot, design=result)
-    if not check.passed:
-        raise GenerationFailure('Selected candidate failed final validation.', [{'failures': check.failures}])
+
+    if result is None:
+        # Fallback to procedural generator
+        if req.design_seed is None:
+            # Scramble seed if missing to introduce SOME variety in fallback
+            import random
+            req.design_seed = random.randint(1, 1000000)
+        
+        result = select_best(req, plot)
+        check = validate_geometry(result.rooms, req.bedrooms, req.floors, land_size_perches, plot=plot, design=result)
+        if not check.passed:
+            raise GenerationFailure('Selected candidate failed final validation.', [{'failures': check.failures}])
+        mode = 'procedural_fallback'
+
     known_extras = set(PlotConstraints.model_fields) | {'plot_constraints', 'photo_url'}
     unhandled = sorted(set(req.model_extra or {}) - known_extras)
     result.candidate_summary.update(generation_mode=mode, unhandled_preferences=unhandled)
     if unhandled:
-        result.candidate_summary['notes'].append('Unrecognized preferences were not applied: '+', '.join(unhandled))
-    if advice:
-        result.candidate_summary['concept_advice'] = advice.model_dump()
+        result.candidate_summary.setdefault('notes', []).append('Unrecognized preferences were not applied: '+', '.join(unhandled))
     if revision_reason:
         result.candidate_summary['revision_feedback'] = revision_reason
-        if not advice:
-            result.candidate_summary['notes'].append('Free-text revision feedback requires AI advice; explicit preference changes are applied deterministically.')
+        
     return result
 
 
@@ -112,13 +128,13 @@ def _call_gemini_design(client, user_prompt: str) -> str:
     from google.genai import types
     response = client.models.generate_content(
         model='gemini-3.6-flash', contents=user_prompt,
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.4,
-                                          max_output_tokens=1500, response_mime_type='application/json',
-                                          response_json_schema=ConceptAdvice.model_json_schema()))
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, temperature=0.7,
+                                          max_output_tokens=3000, response_mime_type='application/json',
+                                          response_json_schema=DesignResult.model_json_schema()))
     return (response.text or '').strip()
 
 
-def _parse_design_result(text: str) -> dict | None:
+def _parse_design_result(text: str) -> Optional[dict]:
     try:
         cleaned = '\n'.join(line for line in text.strip().splitlines() if not line.strip().startswith('```'))
         data = json.loads(cleaned)
@@ -139,7 +155,7 @@ def select_template(bedrooms: int, floors: int, terrain_type: str, land_size_per
 
 
 def _mock_layout(bedrooms: int, floors: int, terrain_type: str, foundation_type: str,
-                 max_area: float, template_id: str | None = None, template: dict | None = None) -> DesignResult:
+                 max_area: float, template_id: Optional[str] = None, template: Optional[dict] = None) -> DesignResult:
     """Compatibility wrapper: the offline path uses the same validated candidate engine."""
     req, plot = prepare_inputs(max_area/(SQFT_PER_PERCH*MAX_COVERAGE_RATIO), terrain_type,
                                {'bedrooms': bedrooms, 'floors': floors, 'design_seed': 0})

@@ -1,5 +1,5 @@
 import pytest
-from app.schemas.workflow_agent import WorkflowState, CoordinatorInput
+from app.schemas.workflow_state import WorkflowState, CoordinatorInput
 from app.agents.land_analysis_agent import land_analysis_node
 from app.tools.vision_classify_tool import _parse_terrain_result, _safe_fallback
 

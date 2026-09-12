@@ -77,8 +77,7 @@ namespace HousePlanner.API.Controllers
                 return StatusCode(500, new { Message = "Database error while saving the submission.", Details = ex.InnerException?.Message ?? ex.Message });
             }
 
-            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var content = new StringContent(JsonSerializer.Serialize(payload, options), Encoding.UTF8, "application/json");
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             _agenticServiceClient.DefaultRequestHeaders.Clear();
             _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
 
@@ -87,11 +86,13 @@ namespace HousePlanner.API.Controllers
                 var response = await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/start", content);
                 if (!response.IsSuccessStatusCode)
                 {
+                    // If the Python API returns a 4xx or 5xx, we handle it gracefully instead of a raw 500
                     return BadRequest(new { Message = $"Agentic service returned an error: {response.StatusCode}" });
                 }
             }
             catch (HttpRequestException ex)
             {
+                // This means the Python backend is NOT running or is unreachable
                 return BadRequest(new { Message = "Cannot connect to the AI Agentic Service. Please make sure it is running on port 8001.", Details = ex.Message });
             }
             catch (Exception ex)
@@ -109,8 +110,8 @@ namespace HousePlanner.API.Controllers
         public decimal LandSizePerches { get; set; }
         public string? ManualTerrainType { get; set; }
         public PreferencesDto? Preferences { get; set; }
-        public JsonElement? PlotConstraints { get; set; }
-        public int? DesignSeed { get; set; }
+        public PlotConstraintsDto? PlotConstraints { get; set; }
+        public long? DesignSeed { get; set; }
     }
 
     public class PreferencesDto
@@ -119,5 +120,12 @@ namespace HousePlanner.API.Controllers
         public int Floors { get; set; }
         public string? ArchitecturalStyle { get; set; }
         public string? LandUnit { get; set; }
+    }
+
+    public class PlotConstraintsDto
+    {
+        public string? road_side { get; set; }
+        public decimal? plot_width_ft { get; set; }
+        public decimal? plot_length_ft { get; set; }
     }
 }

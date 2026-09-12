@@ -105,7 +105,7 @@ def _submit_design(state: WorkflowState) -> str:
             "Content-Type": "application/json"
         }
         response = requests.post(
-            f"{ASPNET_API_URL}/api/v1/internal/workflows/{state.workflow_id}/design",
+            f"{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/design",
             json=state.design_result,
             headers=headers,
             timeout=10,
@@ -129,7 +129,7 @@ def _persist_failure(state: WorkflowState) -> None:
     """Expose safe failure through the existing gateway polling workflow."""
     try:
         response = requests.patch(
-            f'{ASPNET_API_URL}/api/v1/internal/workflows/{state.workflow_id}/status',
+            f'{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/status',
             json={'status': 'failed'}, headers={'X-Internal-API-Key': INTERNAL_API_KEY},
             timeout=5, verify=False)
         response.raise_for_status()
