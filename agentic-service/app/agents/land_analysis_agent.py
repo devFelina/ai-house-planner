@@ -44,11 +44,31 @@ def land_analysis_node(state: WorkflowState) -> WorkflowState:
             }
             action = "No photo URL available — terrain unknown; manual classification required"
         else:
-            # Call the vision classification tool
-            terrain_result = vision_classify_tool(photo_url)
-            state.terrain_result = terrain_result.model_dump()
-            action = f"Classified terrain as '{terrain_result.terrain_type}' (slope: {terrain_result.slope_estimate})"
-            tool = "vision_classify_tool"
+            # Call the vision classification tool with retry logic
+            success = False
+            for attempt in range(2): # 1 retry
+                try:
+                    terrain_result = vision_classify_tool(photo_url)
+                    state.terrain_result = terrain_result.model_dump()
+                    action = f"Classified terrain as '{terrain_result.terrain_type}' (slope: {terrain_result.slope_estimate})"
+                    tool = "vision_classify_tool"
+                    success = True
+                    break
+                except Exception as e:
+                    print(f"[Land Analysis] Vision API failed on attempt {attempt+1}: {e}")
+            
+            if not success:
+                # Fallback to manual terrain
+                manual_terrain = state.input_data.manual_terrain_type if state.input_data else "unknown"
+                if not manual_terrain:
+                    manual_terrain = "unknown"
+                    
+                state.terrain_result = {
+                    "terrain_type": manual_terrain,
+                    "slope_estimate": "unknown",
+                    "notable_features": ["vision_failed_used_manual_fallback"]
+                }
+                action = f"Vision failed, fell back to manual terrain '{manual_terrain}'"
 
     # Persist terrain result to ASP.NET (best-effort, don't block on failure)
     _persist_terrain(state)

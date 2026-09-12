@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 Direction = Literal['north', 'south', 'east', 'west']
@@ -24,7 +24,7 @@ class Requirements(BaseModel):
     balcony: bool = False
     garden_priority: bool = False
     accessibility: bool = False
-    design_seed: int | None = None
+    design_seed: Optional[int] = None
 
 
 class RoomSpec(BaseModel):

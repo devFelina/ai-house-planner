@@ -62,11 +62,14 @@ namespace HousePlanner.API.Controllers
                 await _context.SaveChangesAsync();
 
                 payload = new {
+                    workflow_id = workflowState.Id,
                     submission_id = submission.Id,
                     budget_lkr = request.BudgetLkr,
                     land_size_perches = request.LandSizePerches,
                     manual_terrain_type = request.ManualTerrainType,
-                    preferences = request.Preferences
+                    preferences = request.Preferences,
+                    plot_constraints = request.PlotConstraints,
+                    design_seed = request.DesignSeed
                 };
             }
             catch (Exception ex)
@@ -107,6 +110,8 @@ namespace HousePlanner.API.Controllers
         public decimal LandSizePerches { get; set; }
         public string? ManualTerrainType { get; set; }
         public PreferencesDto? Preferences { get; set; }
+        public PlotConstraintsDto? PlotConstraints { get; set; }
+        public long? DesignSeed { get; set; }
     }
 
     public class PreferencesDto
@@ -115,5 +120,12 @@ namespace HousePlanner.API.Controllers
         public int Floors { get; set; }
         public string? ArchitecturalStyle { get; set; }
         public string? LandUnit { get; set; }
+    }
+
+    public class PlotConstraintsDto
+    {
+        public string? road_side { get; set; }
+        public decimal? plot_width_ft { get; set; }
+        public decimal? plot_length_ft { get; set; }
     }
 }

@@ -8,7 +8,7 @@ Why deterministic validation instead of relying on the LLM:
 
 All checks are rule-based — no AI involved.
 """
-from typing import List
+from typing import List, Optional, Union
 from math import isfinite
 from app.design.plot_constraints import PlotConstraints
 from app.design.adjacency import shared_wall, exterior_segments, graph_for, reachable, road_access_clear
@@ -45,8 +45,8 @@ def validate_geometry(
     expected_floors: int,
     land_size_perches: float,
     *,
-    plot: PlotConstraints | None = None,
-    design: DesignResult | None = None,
+    plot: Optional[PlotConstraints] = None,
+    design: Optional[DesignResult] = None,
 ) -> GeometryValidationResult:
     """
     Run all geometry checks on a generated design.
@@ -149,8 +149,8 @@ def validate_geometry(
 
 
 def _validate_spatial_rules(result: GeometryValidationResult, rooms: List[RoomLayout],
-                            expected_floors: int, plot: PlotConstraints | None,
-                            design: DesignResult | None) -> None:
+                            expected_floors: int, plot: Optional[PlotConstraints],
+                            design: Optional[DesignResult]) -> None:
     if len({r.room_id for r in rooms}) != len(rooms):
         result.fail('duplicate_room_id', 'Room IDs must be unique across all floors.')
     if {r.floor for r in rooms} != set(range(1, expected_floors+1)):

@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from app.design.diversity import stable_seed
 from app.design.geometry_engine import generate_geometry
 from app.design.models import Requirements, ConceptAdvice
@@ -9,16 +10,26 @@ from app.schemas.design_result import DesignResult
 from app.tools.geometry_validator import validate_geometry
 
 
+def geometry_fingerprint(design: DesignResult) -> str:
+    import hashlib
+    # Normalize and sort rooms
+    normalized = []
+    for r in design.rooms:
+        normalized.append(f"{r.room_type}:{r.floor}:{r.x:.1f}:{r.y:.1f}:{r.width:.1f}:{r.length:.1f}")
+    normalized.sort()
+    return hashlib.sha256(",".join(normalized).encode('utf-8')).hexdigest()
+
+
 class GenerationFailure(ValueError):
     """No valid candidate exists within this procedural search's supported limits."""
 
-    def __init__(self, message: str, failures: list[dict] | None = None):
+    def __init__(self, message: str, failures: Optional[list[dict]] = None):
         super().__init__(message)
         self.failures = failures or []
 
 
 def generate_candidates(req: Requirements, plot: PlotConstraints,
-                        advice: ConceptAdvice | None = None) -> tuple[list[DesignResult], list[dict]]:
+                        advice: Optional[ConceptAdvice] = None) -> tuple[list[DesignResult], list[dict]]:
     if plot.terrain_type == 'unknown':
         raise GenerationFailure('Terrain is unknown; provide a manual terrain classification.')
     program = build_program(req)
@@ -31,7 +42,7 @@ def generate_candidates(req: Requirements, plot: PlotConstraints,
                                 stable_seed({'seed': seed, 'family': t.name})))
     valid, rejected = [], []
     for topology in families:
-        for attempt in range(3):
+        for attempt in range(6):  # Increased from 3 to 6 for more variants
             try:
                 candidate = generate_geometry(program, req, plot, topology.name, seed, attempt)
                 check = validate_geometry(candidate.rooms, req.bedrooms, req.floors, plot.land_size_perches,
@@ -43,11 +54,9 @@ def generate_candidates(req: Requirements, plot: PlotConstraints,
                 candidate.design_score = score
                 candidate.candidate_summary = {'score_breakdown': breakdown}
                 valid.append(candidate)
-                break
             except ValueError as exc:
                 rejected.append({'family': topology.name, 'attempt': attempt, 'failures': [str(exc)]})
-        if len(valid) == 5:
-            break
+        # Removed premature break to allow multiple variants per family
     # On constrained plots, produce alternate size concepts from eligible families.
     if 0 < len(valid) < 3:
         originals = list(valid)
@@ -71,13 +80,46 @@ def generate_candidates(req: Requirements, plot: PlotConstraints,
     return valid, rejected
 
 
-def select_best(req: Requirements, plot: PlotConstraints, advice: ConceptAdvice | None = None) -> DesignResult:
+def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[ConceptAdvice] = None) -> DesignResult:
+    import random
     candidates, rejected = generate_candidates(req, plot, advice)
     if not candidates:
         raise GenerationFailure('No valid conceptual layout fits the plot, room program and area limits.', rejected)
-    best = max(candidates, key=lambda c: (c.design_score, c.design_id))
+    
+    best_score = max(c.design_score for c in candidates)
+    tolerance = max(10.0, abs(best_score) * 0.25)
+    
+    top_band = [c for c in candidates if c.design_score >= best_score - tolerance]
+    
+    unique_candidates = []
+    seen_fingerprints = set()
+    for c in top_band:
+        fp = geometry_fingerprint(c)
+        if fp not in seen_fingerprints:
+            seen_fingerprints.add(fp)
+            c.candidate_summary = c.candidate_summary or {}
+            c.candidate_summary['geometry_fingerprint'] = fp
+            unique_candidates.append(c)
+            
+    best_per_family = {}
+    for c in unique_candidates:
+        family = c.template_family
+        if family not in best_per_family:
+            best_per_family[family] = c
+        elif c.design_score > best_per_family[family].design_score:
+            best_per_family[family] = c
+            
+    diverse_candidates = list(best_per_family.values())
+    
+    seed = req.design_seed if req.design_seed is not None else random.randint(1, 1000000)
+    rng = random.Random(seed)
+    
+    best = rng.choice(diverse_candidates)
+    
     best.candidate_summary.update({
         'valid_count': len(candidates), 'rejected_count': len(rejected),
+        'diversity_pool': len(diverse_candidates),
+        'selected_seed': seed,
         'candidates': [{'family': c.template_family, 'design_id': c.design_id, 'score': c.design_score,
                         'score_breakdown': c.candidate_summary['score_breakdown']} for c in candidates],
         'rejected': rejected,

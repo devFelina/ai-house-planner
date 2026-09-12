@@ -80,14 +80,20 @@ const IntakeForm: React.FC = () => {
         payload.budget_lkr = parsedBudget;
       }
 
-      // Call Python LangGraph API directly to start the workflow
-      const response = await fetch('http://127.0.0.1:8001/workflows/start', {
+      // Call ASP.NET API
+      const response = await fetch('http://localhost:5265/api/aigeneration/generate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-API-Key': 'shared-internal-secret' // Required by Python API
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          BudgetLkr: payload.budget_lkr,
+          LandSizePerches: payload.land_size_perches,
+          ManualTerrainType: payload.manual_terrain_type,
+          Preferences: payload.preferences,
+          PlotConstraints: payload.plot_constraints,
+          DesignSeed: payload.design_seed
+        }),
       });
 
       if (!response.ok) {
@@ -97,7 +103,7 @@ const IntakeForm: React.FC = () => {
       const result = await response.json();
       console.log('AI Coordinator Result:', result);
       
-      setWorkflowId(result.workflow_id);
+      setWorkflowId(result.WorkflowId || result.workflowId);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);

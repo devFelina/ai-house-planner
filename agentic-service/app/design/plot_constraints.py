@@ -1,5 +1,5 @@
 from math import sqrt
-from typing import Literal
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 from app.design.models import Direction, Terrain
 from app.tools.land_utils import perches_to_sqft, max_buildable_area
@@ -16,12 +16,12 @@ class Setbacks(BaseModel):
 class PlotConstraints(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
     land_size_perches: float = Field(gt=0)
-    plot_width_ft: float | None = Field(None, gt=0)
-    plot_length_ft: float | None = Field(None, gt=0)
+    plot_width_ft: Optional[float] = Field(None, gt=0)
+    plot_length_ft: Optional[float] = Field(None, gt=0)
     road_side: Direction = 'south'
     north_direction: Literal['top', 'bottom', 'left', 'right'] = 'top'
     terrain_type: Terrain = 'flat'
-    slope_direction: Direction | None = None
+    slope_direction: Optional[Direction] = None
     setbacks: Setbacks = Field(default_factory=Setbacks)
     dimensions_estimated: bool = False
     parking_reserved: bool = False

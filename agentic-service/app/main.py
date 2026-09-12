@@ -12,7 +12,7 @@ app = FastAPI(title="Agentic AI Service - House Planner")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow React app
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Allow React app explicitly
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,13 +27,25 @@ def verify_api_key(api_key: str=Security(api_key_header)):
     return api_key
 
 class StartWorkflowRequest(BaseModel):
-    submission_id:UUID
-    budget_lkr:Optional[float]=None
-    land_size_perches:float
-    manual_terrain_type:Optional[str]=None
-    preferences:Dict[str,Any]
-    plot_constraints:Optional[Dict[str,Any]]=None
-    design_seed:Optional[int]=None
+    workflow_id: UUID
+    submission_id: UUID
+    budget_lkr: Optional[float] = None
+    land_size_perches: float
+    manual_terrain_type: Optional[str] = None
+    preferences: Dict[str, Any]
+    plot_constraints: Optional[Dict[str, Any]] = None
+    design_seed: Optional[int] = None
+
+class ResumeWorkflowRequest(BaseModel):
+    workflow_id: UUID
+    resume_from: str
+    user_revision_prompt: str
+    budget_lkr: Optional[float] = None
+    land_size_perches: float
+    manual_terrain_type: Optional[str] = None
+    preferences: Dict[str, Any]
+    terrain_result: Optional[Dict[str, Any]] = None
+    previous_design: Optional[str] = None
 
 def execute_workflow(initial_state:WorkflowState):
     """Background task to run the LangGraph workflow"""
@@ -49,11 +61,9 @@ def start_workflow(
     """
     Endpoint called by ASP.NET Core component after a successful intake
     """
-    workflow_id=uuid4()
-
     #Construct initial state
     initial_state=WorkflowState(
-        workflow_id=workflow_id,
+        workflow_id=request.workflow_id,
         status="running",
         input_data=CoordinatorInput(**request.model_dump())
     )
@@ -63,6 +73,43 @@ def start_workflow(
 
     return{
         "message":"Workflow started successfully",
-        "workflow_id":str(workflow_id)
+        "workflow_id":str(request.workflow_id)
     }
+
+@app.post("/workflows/resume")
+def resume_workflow(
+    request: ResumeWorkflowRequest,
+    background_tasks: BackgroundTasks,
+    api_key: str = Security(verify_api_key)
+):
+    import json
+    
+    # Reconstruct input data
+    input_data = CoordinatorInput(
+        submission_id=request.workflow_id,
+        budget_lkr=request.budget_lkr,
+        land_size_perches=request.land_size_perches,
+        manual_terrain_type=request.manual_terrain_type,
+        preferences=request.preferences,
+    )
+    
+    previous_design_obj = None
+    if request.previous_design:
+        try:
+            previous_design_obj = json.loads(request.previous_design)
+        except:
+            pass
+
+    state = WorkflowState(
+        workflow_id=request.workflow_id,
+        status="running",
+        current_agent=request.resume_from, # Set the router to start here
+        input_data=input_data,
+        terrain_result=request.terrain_result,
+        design_result=previous_design_obj,
+        validation_result={"passed": False, "revision_reason": request.user_revision_prompt}
+    )
+    
+    background_tasks.add_task(execute_workflow, state)
+    return {"message": "Workflow resumed successfully", "workflow_id": str(request.workflow_id)}
 

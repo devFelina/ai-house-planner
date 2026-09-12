@@ -1,3 +1,4 @@
+from typing import Optional, Union
 """Generative AI layout planner with procedural fallback."""
 import json
 import uuid
@@ -24,8 +25,8 @@ Generate coordinates (x, y) starting from (0,0) at the bottom-left corner.
 """
 
 def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dict,
-                   plot_constraints: dict | PlotConstraints | None = None,
-                   design_seed: int | None = None) -> tuple[Requirements, PlotConstraints]:
+                   plot_constraints: Union[dict, Optional[PlotConstraints]] = None,
+                   design_seed: Optional[int] = None) -> tuple[Requirements, PlotConstraints]:
     values = dict(preferences)
     if 'architecturalStyle' in values and 'style' not in values:
         values['style'] = values.pop('architecturalStyle')
@@ -48,9 +49,9 @@ def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dic
 
 
 def generate_layout(land_size_perches: float, terrain_type: str, preferences: dict,
-                    previous_design: dict | None = None, revision_reason: str | None = None,
-                    *, plot_constraints: dict | PlotConstraints | None = None,
-                    design_seed: int | None = None) -> DesignResult:
+                    previous_design: Optional[dict] = None, revision_reason: Optional[str] = None,
+                    *, plot_constraints: Union[dict, Optional[PlotConstraints]] = None,
+                    design_seed: Optional[int] = None) -> DesignResult:
     try:
         req, plot = prepare_inputs(land_size_perches, terrain_type, preferences, plot_constraints, design_seed)
     except (ValueError, TypeError) as exc:
@@ -133,7 +134,7 @@ def _call_gemini_design(client, user_prompt: str) -> str:
     return (response.text or '').strip()
 
 
-def _parse_design_result(text: str) -> dict | None:
+def _parse_design_result(text: str) -> Optional[dict]:
     try:
         cleaned = '\n'.join(line for line in text.strip().splitlines() if not line.strip().startswith('```'))
         data = json.loads(cleaned)
@@ -154,7 +155,7 @@ def select_template(bedrooms: int, floors: int, terrain_type: str, land_size_per
 
 
 def _mock_layout(bedrooms: int, floors: int, terrain_type: str, foundation_type: str,
-                 max_area: float, template_id: str | None = None, template: dict | None = None) -> DesignResult:
+                 max_area: float, template_id: Optional[str] = None, template: Optional[dict] = None) -> DesignResult:
     """Compatibility wrapper: the offline path uses the same validated candidate engine."""
     req, plot = prepare_inputs(max_area/(SQFT_PER_PERCH*MAX_COVERAGE_RATIO), terrain_type,
                                {'bedrooms': bedrooms, 'floors': floors, 'design_seed': 0})

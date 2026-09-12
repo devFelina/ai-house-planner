@@ -1,4 +1,6 @@
 try:
+    import matplotlib
+    matplotlib.use('Agg') # Set non-interactive backend BEFORE importing pyplot
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
     HAS_MATPLOTLIB = True

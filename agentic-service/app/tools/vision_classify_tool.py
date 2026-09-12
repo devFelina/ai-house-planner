@@ -1,3 +1,4 @@
+from typing import Optional, Union
 """
 Vision classification tool for land terrain analysis.
 
@@ -44,7 +45,7 @@ Rules:
 
 # Even stricter prompt for retry
 RETRY_PROMPT = """Return ONLY a JSON object. No text before or after.
-{"terrain_type": "flat|hillside|coastal|unknown", "slope_estimate": "flat|gentle|moderate|steep|unknown", "notable_features": []}"""
+{"terrain_type": "Union[flat, hillside]|Union[coastal, unknown]", "slope_estimate": "Union[flat, gentle]|Union[moderate, steep]|unknown", "notable_features": []}"""
 
 
 
@@ -124,7 +125,9 @@ def _call_gemini_vision(client, photo_url: str, prompt: str) -> str:
     return response.text.strip()
 
 
-def _parse_terrain_result(text: str) -> TerrainResult | None:
+from typing import Optional
+
+def _parse_terrain_result(text: str) -> Optional[TerrainResult]:
     """
     Parse raw LLM text into a validated TerrainResult.
     Handles common issues like markdown code blocks around JSON.
