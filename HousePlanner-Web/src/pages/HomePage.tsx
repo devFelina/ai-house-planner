@@ -308,19 +308,19 @@ const HomePage: React.FC = () => {
       >
         <div className="max-w-[1600px] mx-auto px-8 h-24 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 relative flex items-center justify-center">
-              <Box className="absolute text-gray-900 dark:text-white transition-colors" size={24} strokeWidth={1.5} />
-              <Sparkles className="absolute text-yellow-600 -top-1 -right-1" size={12} />
-            </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white tracking-[0.2em] transition-colors">HOMEPLANNER<span className="text-gray-400">AI</span></span>
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 relative flex items-center justify-center">
+                <Box className="absolute text-gray-900 dark:text-white transition-colors" size={24} strokeWidth={1.5} />
+                <Sparkles className="absolute text-yellow-600 -top-1 -right-1" size={12} />
+              </div>
+              <span className="text-sm font-bold text-gray-900 dark:text-white tracking-[0.2em] transition-colors">HOMEPLANNER<span className="text-gray-400">AI</span></span>
+            </Link>
           </div>
           
           <div className="hidden lg:flex items-center gap-10 text-[11px] font-semibold tracking-[0.15em] text-gray-500 dark:text-gray-400">
-            <a href="#" className="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">HOME</a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">AI DESIGN</a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">3D PLANNER</a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">HOUSE PLANS</a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">HOW IT WORKS</a>
+            <Link to="/" className="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">HOME</Link>
+            <Link to="/dashboard/new-project" className="hover:text-gray-900 dark:hover:text-white transition-colors">AI DESIGN</Link>
+            <Link to="/dashboard" className="hover:text-gray-900 dark:hover:text-white transition-colors">MY PLANS</Link>
           </div>
 
           <div className="flex items-center gap-6">
