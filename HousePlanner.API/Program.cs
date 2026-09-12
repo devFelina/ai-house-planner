@@ -65,6 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // 4. Register application services
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddSingleton<IWorkflowService, WorkflowService>();
 
 // 5. Initialize Firebase Admin SDK
 var serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
