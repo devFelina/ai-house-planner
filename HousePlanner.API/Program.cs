@@ -65,6 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // 4. Register application services
 builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
+builder.Services.AddHttpClient();
 
 // 5. Initialize Firebase Admin SDK
 var serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"];
@@ -129,6 +130,8 @@ app.UseCors("AllowReactApp");
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Drop existing database to ensure all tables are created properly
+    context.Database.EnsureDeleted();
     context.Database.EnsureCreated();
 }
 

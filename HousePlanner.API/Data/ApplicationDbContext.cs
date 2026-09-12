@@ -18,6 +18,12 @@ namespace HousePlanner.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Seed default roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Name = "User" },
+                new Role { Id = 2, Name = "Admin" }
+            );
+
             modelBuilder.Entity<HouseDesign>(entity =>
             {
                 entity.HasIndex(e => e.WorkflowStateId).HasDatabaseName("IX_HouseDesigns_WorkflowStateId");

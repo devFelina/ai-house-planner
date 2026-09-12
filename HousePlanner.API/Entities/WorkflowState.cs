@@ -12,6 +12,9 @@ public class WorkflowState
     [Required]
     public Guid LandSubmissionId { get; set; }
 
+    [ForeignKey("LandSubmissionId")]
+    public virtual LandSubmission LandSubmission { get; set; } = null!;
+
     [Required]
     [MaxLength(30)]
     public string Status { get; set; } = "pending";
@@ -30,6 +33,9 @@ public class WorkflowState
     public string ApprovalStatus { get; set; } = "not_requested";
 
     public Guid? ApprovedByUserId { get; set; }
+
+    [ForeignKey("ApprovedByUserId")]
+    public virtual User? ApprovedByUser { get; set; }
 
     public DateTimeOffset? ApprovedAt { get; set; }
 

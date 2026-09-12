@@ -34,3 +34,7 @@ class WorkflowState(BaseModel):
     #Internal routing data
     input_data:Optional[CoordinatorInput]=None
     current_agent:str="coordinator"
+
+    #To store user chat feedback for revisions
+    user_revision_prompt:Optional[str]=None
+    
