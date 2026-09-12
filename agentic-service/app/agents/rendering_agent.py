@@ -1,5 +1,10 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 import os
 from app.schemas.workflow_state import WorkflowState
 def rendering_node(state: WorkflowState) -> WorkflowState:
@@ -7,6 +12,10 @@ def rendering_node(state: WorkflowState) -> WorkflowState:
     
     if not state.design_result or "rooms" not in state.design_result:
         print("[Rendering Agent] No rooms found in design result.")
+        return state
+        
+    if not HAS_MATPLOTLIB:
+        print("[Rendering Agent] Matplotlib not installed. Skipping rendering.")
         return state
         
     # Setup Blueprint Canvas

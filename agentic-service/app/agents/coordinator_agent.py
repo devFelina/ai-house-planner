@@ -1,6 +1,6 @@
 import requests
 from typing import Dict, Any
-from app.schemas.workflow_agent import WorkflowState
+from app.schemas.workflow_state import WorkflowState
 
 
 def coordinator_node(state: WorkflowState) -> WorkflowState:

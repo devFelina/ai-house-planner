@@ -6,7 +6,7 @@ submits them to ASP.NET Core for persistence. Supports both initial
 generation and revision after validation failure.
 """
 import requests
-from app.schemas.workflow_agent import WorkflowState, ExecutionLogEntry
+from app.schemas.workflow_state import WorkflowState, ExecutionLogEntry
 from app.tools.layout_generation_tool import generate_layout, prepare_inputs
 from app.design.candidate_generator import GenerationFailure
 from app.tools.geometry_validator import validate_geometry

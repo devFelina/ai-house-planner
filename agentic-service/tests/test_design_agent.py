@@ -1,5 +1,5 @@
 import pytest
-from app.schemas.workflow_agent import WorkflowState, CoordinatorInput
+from app.schemas.workflow_state import WorkflowState, CoordinatorInput
 from app.agents.design_agent import design_node
 from app.tools.layout_generation_tool import select_template, generate_layout
 from unittest.mock import patch

@@ -8,7 +8,7 @@ def validation_node(state: WorkflowState) -> WorkflowState:
     is_valid = True
     reason = "Design meets all budget and space constraints."
     
-    if estimated_cost > budget * 1.15: # Allow 15% buffer flexibility
+    if budget is not None and estimated_cost > budget * 1.15: # Allow 15% buffer flexibility
         is_valid = False
         reason = f"Estimated cost ({estimated_cost:,.2f} LKR) exceeds budget ({budget:,.2f} LKR)."
         

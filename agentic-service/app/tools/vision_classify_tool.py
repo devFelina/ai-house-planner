@@ -46,10 +46,7 @@ Rules:
 RETRY_PROMPT = """Return ONLY a JSON object. No text before or after.
 {"terrain_type": "flat|hillside|coastal|unknown", "slope_estimate": "flat|gentle|moderate|steep|unknown", "notable_features": []}"""
 
-class TerrainResult(BaseModel):
-    terrain_type: str
-    slope_estimate: str
-    notable_features: List[str]
+
 
 def vision_classify_tool(photo_url: str) -> TerrainResult:
     """
