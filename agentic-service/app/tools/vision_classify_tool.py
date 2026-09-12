@@ -21,6 +21,7 @@ Allowed terrain_type values:
 - flat
 - hillside
 - coastal
+- unknown (insufficient evidence)
 
 Allowed slope_estimate values:
 - flat
@@ -43,7 +44,7 @@ Rules:
 
 # Even stricter prompt for retry
 RETRY_PROMPT = """Return ONLY a JSON object. No text before or after.
-{"terrain_type": "flat|hillside|coastal", "slope_estimate": "flat|gentle|moderate|steep|unknown", "notable_features": []}"""
+{"terrain_type": "flat|hillside|coastal|unknown", "slope_estimate": "flat|gentle|moderate|steep|unknown", "notable_features": []}"""
 
 
 def vision_classify_tool(photo_url: str) -> TerrainResult:
@@ -65,7 +66,7 @@ def vision_classify_tool(photo_url: str) -> TerrainResult:
     if not GOOGLE_API_KEY:
         print("[Vision Tool] No GOOGLE_API_KEY set. Returning mock result for development.")
         return TerrainResult(
-            terrain_type="flat",
+            terrain_type="unknown",
             slope_estimate="unknown",
             notable_features=["no_api_key_mock"]
         )
@@ -94,11 +95,7 @@ def vision_classify_tool(photo_url: str) -> TerrainResult:
 
     except ImportError:
         print("[Vision Tool] google-genai package not available. Returning mock.")
-        return TerrainResult(
-            terrain_type="hillside",
-            slope_estimate="moderate",
-            notable_features=["mock_no_genai_package"]
-        )
+        return _safe_fallback('no_genai_package')
     except Exception as e:
         print(f"[Vision Tool] Vision API error: {e}")
         return _safe_fallback(f"api_error: {str(e)[:100]}")
@@ -145,7 +142,7 @@ def _parse_terrain_result(text: str) -> TerrainResult | None:
         data = json.loads(cleaned)
         if not isinstance(data, dict):
             return None
-        if data.get("terrain_type") not in {"flat", "hillside", "coastal"}:
+        if data.get("terrain_type") not in {"flat", "hillside", "coastal", "unknown"}:
             print(f"[Vision Tool] Invalid terrain type rejected: {data.get('terrain_type')}")
             return None
         if data.get("slope_estimate") not in {"flat", "gentle", "moderate", "steep", "unknown"}:
@@ -164,7 +161,7 @@ def _safe_fallback(reason: str) -> TerrainResult:
     """
     print(f"[Vision Tool] Using safe fallback. Reason: {reason}")
     return TerrainResult(
-        terrain_type="flat",
+        terrain_type="unknown",
         slope_estimate="unknown",
         notable_features=[f"vision_fallback: {reason}"]
     )
