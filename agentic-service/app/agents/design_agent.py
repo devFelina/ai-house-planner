@@ -1,14 +1,14 @@
 """
 Design Agent — LangGraph node.
 
-Generates structured house layouts using deterministic templates and
+Generates validated procedural house layouts and
 submits them to ASP.NET Core for persistence. Supports both initial
 generation and revision after validation failure.
 """
 import requests
-import os
 from app.schemas.workflow_agent import WorkflowState, ExecutionLogEntry
-from app.tools.layout_generation_tool import generate_layout
+from app.tools.layout_generation_tool import generate_layout, prepare_inputs
+from app.design.candidate_generator import GenerationFailure
 from app.tools.geometry_validator import validate_geometry
 from app.config import ASPNET_API_URL, INTERNAL_API_KEY
 from datetime import datetime, timezone
@@ -21,7 +21,7 @@ def design_node(state: WorkflowState) -> WorkflowState:
     Flow:
     1. Extract inputs (land size, terrain, preferences)
     2. Check if this is a revision (validation_result with failures)
-    3. Generate layout using template system
+    3. Generate and rank eligible procedural layouts
     4. Run geometry validation
     5. Submit to ASP.NET Core internal API for persistence
     """
@@ -31,7 +31,7 @@ def design_node(state: WorkflowState) -> WorkflowState:
     land_size = state.input_data.land_size_perches if state.input_data else 10.0
     preferences = state.input_data.preferences if state.input_data else {"bedrooms": 3, "floors": 2}
 
-    terrain_type = "flat"
+    terrain_type = "unknown"
     if state.terrain_result and "terrain_type" in state.terrain_result:
         terrain_type = state.terrain_result["terrain_type"]
 
@@ -43,27 +43,37 @@ def design_node(state: WorkflowState) -> WorkflowState:
         revision_reason = state.validation_result.get("revision_reason", "Unknown validation failure")
         print(f"[Design Agent] Revision requested. Reason: {revision_reason}")
 
-    # Generate layout using the template-based tool
-    design = generate_layout(
-        land_size_perches=land_size,
-        terrain_type=terrain_type,
-        preferences=preferences,
-        previous_design=previous_design,
-        revision_reason=revision_reason,
-    )
+    # Soft vision observations may inform concepts, never structural calculations.
+    preferences = dict(preferences)
+    preferences['notable_features'] = (state.terrain_result or {}).get('notable_features', [])
+    try:
+        plot_input = state.input_data.plot_constraints if state.input_data else None
+        seed = state.input_data.design_seed if state.input_data else None
+        design = generate_layout(
+            land_size_perches=land_size, terrain_type=terrain_type,
+            preferences=preferences, previous_design=previous_design,
+            revision_reason=revision_reason, plot_constraints=plot_input, design_seed=seed,
+        )
+        req, plot = prepare_inputs(land_size, terrain_type, preferences, plot_input, seed)
+        validation = validate_geometry(design.rooms, req.bedrooms, req.floors, land_size,
+                                       plot=plot, design=design)
+        if not validation.passed:
+            raise GenerationFailure('Local geometry validation failed.', [{'failures': validation.failures}])
+    except (GenerationFailure, ValueError) as exc:
+        state.design_result = None
+        state.status = 'failed'
+        state.current_agent = 'failed'
+        state.approval_status = 'not_requested'
+        state.validation_result = {'passed': False, 'failures': [str(exc)],
+                                   'candidate_failures': getattr(exc, 'failures', [])}
+        state.execution_log.append(ExecutionLogEntry(
+            agent_name='DesignAgent', action='Design generation failed; no layout submitted',
+            tool_called='layout_generation_tool', result=str(exc),
+            created_at_utc=datetime.now(timezone.utc).isoformat()))
+        _persist_failure(state)
+        return state
     state.design_result = design.model_dump()
-
-    # Run geometry validation locally before submitting
-    validation = validate_geometry(
-        rooms=design.rooms,
-        expected_bedrooms=preferences.get("bedrooms", 3),
-        expected_floors=preferences.get("floors", 2),
-        land_size_perches=land_size,
-    )
-
-    if not validation.passed:
-        print(f"[Design Agent] Local geometry validation warnings: {validation.failures}")
-        # Still submit — the ASP.NET side and Member 4 validation will catch issues
+    state.validation_result = validation.to_dict()
 
     # Submit to ASP.NET Core for persistence
     api_result = _submit_design(state)
@@ -113,3 +123,17 @@ def _submit_design(state: WorkflowState) -> str:
     except Exception as e:
         print(f"[Design Agent] Could not reach ASP.NET: {e}")
         return "api_call_skipped_local_dev"
+
+
+def _persist_failure(state: WorkflowState) -> None:
+    """Expose safe failure through the existing gateway polling workflow."""
+    try:
+        response = requests.patch(
+            f'{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/status',
+            json={'status': 'failed'}, headers={'X-Internal-API-Key': INTERNAL_API_KEY},
+            timeout=5, verify=False)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        state.execution_log.append(ExecutionLogEntry(
+            agent_name='DesignAgent', action='Could not persist failed workflow status',
+            result=type(exc).__name__, created_at_utc=datetime.now(timezone.utc).isoformat()))

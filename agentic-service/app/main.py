@@ -28,10 +28,12 @@ def verify_api_key(api_key: str=Security(api_key_header)):
 
 class StartWorkflowRequest(BaseModel):
     submission_id:UUID
-    budget_lkr:float
+    budget_lkr:Optional[float]=None
     land_size_perches:float
     manual_terrain_type:Optional[str]=None
     preferences:Dict[str,Any]
+    plot_constraints:Optional[Dict[str,Any]]=None
+    design_seed:Optional[int]=None
 
 def execute_workflow(initial_state:WorkflowState):
     """Background task to run the LangGraph workflow"""

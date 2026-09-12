@@ -30,6 +30,7 @@ class RoomLayout {
   final double length;
   final List<Opening> doors;
   final List<Opening> windows;
+  final Opening? entrance;
 
   RoomLayout({
     required this.roomId,
@@ -42,6 +43,7 @@ class RoomLayout {
     required this.length,
     required this.doors,
     required this.windows,
+    this.entrance,
   });
 
   factory RoomLayout.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,15 @@ class RoomLayout {
 /// Color palette for distinguishing rooms by type.
 final Map<String, Color> _roomColors = {
   'living_room': const Color(0xFFE0F2FE),
+  'dining': const Color(0xFFFCE7F3),
+  'hallway': const Color(0xFFF1F5F9),
+  'foyer': const Color(0xFFF1F5F9),
+  'entrance': const Color(0xFFCCFBF1),
+  'utility': const Color(0xFFFEF3C7),
+  'home_office': const Color(0xFFEDE9FE),
+  'family_lounge': const Color(0xFFE0F2FE),
+  'balcony': const Color(0xFFDCFCE7),
+  'veranda': const Color(0xFFDCFCE7),
   'dining_room': const Color(0xFFFCE7F3),
   'kitchen': const Color(0xFFFEF3C7),
   'bedroom_1': const Color(0xFFDBEAFE),
@@ -89,9 +100,8 @@ class FloorPlanViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Filter rooms by floor if specified
-    final displayRooms = floorFilter != null
-        ? rooms.where((r) => r.floor == floorFilter).toList()
-        : rooms;
+    final displayedFloor = floorFilter ?? (rooms.isEmpty ? 1 : rooms.map((r) => r.floor).reduce(min));
+    final displayRooms = rooms.where((r) => r.floor == displayedFloor).toList();
 
     if (displayRooms.isEmpty) {
       return const Center(
@@ -110,8 +120,8 @@ class FloorPlanViewer extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const padding = 40.0;
-        final availableWidth = constraints.maxWidth - padding * 2;
-        final availableHeight = constraints.maxHeight - padding * 2;
+        final availableWidth = max(1.0, (constraints.hasBoundedWidth ? constraints.maxWidth : 600) - padding * 2);
+        final availableHeight = max(1.0, (constraints.hasBoundedHeight ? constraints.maxHeight : 480) - padding * 2);
 
         // Scale to fit both width and height
         final scaleX = availableWidth / totalWidthFt;
@@ -156,6 +166,7 @@ class FloorPlanPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (!scale.isFinite || scale <= 0) return;
     // Background Grid
     final gridPaint = Paint()
       ..color = const Color(0xFFF0F0F0)
@@ -229,6 +240,22 @@ class FloorPlanPainter extends CustomPainter {
         _drawOpening(canvas, door, drawX, drawY, drawWidth, drawHeight, doorPaint);
       }
 
+      if (room.roomType.startsWith('staircase')) {
+        final treadPaint = Paint()..color = const Color(0xFF94A3B8)..strokeWidth = 1;
+        for (var i = 1; i <= 8; i++) {
+          final y = drawY + i * drawHeight / 9;
+          canvas.drawLine(Offset(drawX + 4, y), Offset(drawX + drawWidth - 4, y), treadPaint);
+        }
+      }
+      if (room.entrance != null) {
+        final e = room.entrance!;
+        final horizontal = e.wall == 'north' || e.wall == 'south';
+        final ex = horizontal ? drawX + (e.offset + e.width / 2) * scale : e.wall == 'east' ? drawX + drawWidth : drawX;
+        final ey = horizontal ? e.wall == 'north' ? drawY : drawY + drawHeight : drawY + drawHeight - (e.offset + e.width / 2) * scale;
+        canvas.drawCircle(Offset(ex, ey), 4, Paint()..color = const Color(0xFF059669));
+        _drawCenteredText(canvas, 'Entry', ex, ey - 10, dimStyle);
+      }
+
       // 4. Draw labels
       final cx = drawX + drawWidth / 2;
       final cy = drawY + drawHeight / 2;
@@ -293,6 +320,6 @@ class FloorPlanPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant FloorPlanPainter oldDelegate) {
-    return oldDelegate.rooms != rooms || oldDelegate.scale != scale;
+    return oldDelegate.rooms != rooms || oldDelegate.scale != scale || oldDelegate.minX != minX || oldDelegate.maxY != maxY;
   }
 }

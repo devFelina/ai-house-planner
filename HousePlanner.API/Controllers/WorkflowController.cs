@@ -95,11 +95,11 @@ public class WorkflowController : ControllerBase
 
                 var roomDtos = workflow.LatestDesign.Rooms.Select(r =>
                 {
-                    var roomKey = r.RoomType;
+                    var roomKey = (r.RoomType, r.FloorNumber, r.X, r.Y);
                     doorsWindowsMap.TryGetValue(roomKey, out var openings);
 
                     return new RoomSummaryDto(
-                        RoomId: r.Id,
+                        RoomId: openings?.SourceId ?? r.Id,
                         RoomType: r.RoomType,
                         Name: r.Name,
                         FloorNumber: r.FloorNumber,
@@ -114,6 +114,8 @@ public class WorkflowController : ControllerBase
                     );
                 }).ToList();
 
+                using var metadata = ParseLayout(workflow.LatestDesign.LayoutJson);
+                var root = metadata.RootElement;
                 designDto = new HouseDesignSummaryDto(
                     DesignId: workflow.LatestDesign.Id,
                     Version: workflow.LatestDesign.Version,
@@ -123,7 +125,15 @@ public class WorkflowController : ControllerBase
                     TemplateId: workflow.LatestDesign.TemplateId,
                     TerrainType: workflow.LatestDesign.TerrainType,
                     IsCurrent: workflow.LatestDesign.IsCurrent,
-                    Rooms: roomDtos
+                    Rooms: roomDtos,
+                    TemplateFamily: GetMetadata(root, "template_family")?.GetString(),
+                    DesignSeed: GetMetadata(root, "design_seed")?.GetInt64(),
+                    DesignScore: GetMetadata(root, "design_score")?.GetDecimal(),
+                    GroundFootprintSqft: GetMetadata(root, "ground_footprint_sqft")?.GetDecimal(),
+                    Connections: GetMetadata(root, "connections"),
+                    Entrances: GetMetadata(root, "entrances"),
+                    PlotConstraints: GetMetadata(root, "plot_constraints"),
+                    CandidateSummary: GetMetadata(root, "candidate_summary")
                 );
             }
 
@@ -149,9 +159,9 @@ public class WorkflowController : ControllerBase
     /// <summary>
     /// Extract doors and windows from the LayoutJson for each room (keyed by room_type).
     /// </summary>
-    private static Dictionary<string, RoomOpenings> ExtractDoorsWindows(string layoutJson)
+    private static Dictionary<(string, int, decimal, decimal), RoomOpenings> ExtractDoorsWindows(string layoutJson)
     {
-        var result = new Dictionary<string, RoomOpenings>();
+        var result = new Dictionary<(string, int, decimal, decimal), RoomOpenings>();
 
         try
         {
@@ -189,7 +199,11 @@ public class WorkflowController : ControllerBase
                         }
                     }
 
-                    result[roomType] = new RoomOpenings { Doors = doors, Windows = windows };
+                    var floor = roomEl.TryGetProperty("floor", out var f) ? f.GetInt32() : 1;
+                    var x = roomEl.TryGetProperty("x", out var xp) ? xp.GetDecimal() : 0;
+                    var y = roomEl.TryGetProperty("y", out var yp) ? yp.GetDecimal() : 0;
+                    Guid? sourceId = roomEl.TryGetProperty("room_id", out var id) && id.TryGetGuid(out var guid) ? guid : null;
+                    result[(roomType, floor, x, y)] = new RoomOpenings { SourceId = sourceId, Doors = doors, Windows = windows };
                 }
             }
         }
@@ -202,8 +216,19 @@ public class WorkflowController : ControllerBase
         return result;
     }
 
+    private static JsonDocument ParseLayout(string json)
+    {
+        try { return JsonDocument.Parse(json); }
+        catch (JsonException) { return JsonDocument.Parse("{}"); }
+    }
+
+    private static JsonElement? GetMetadata(JsonElement root, string key) =>
+        root.ValueKind == JsonValueKind.Object && root.TryGetProperty(key, out var value)
+        && value.ValueKind != JsonValueKind.Null ? value.Clone() : null;
+
     private class RoomOpenings
     {
+        public Guid? SourceId { get; set; }
         public List<OpeningDto> Doors { get; set; } = new();
         public List<OpeningDto> Windows { get; set; } = new();
     }

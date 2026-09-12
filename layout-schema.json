@@ -3,7 +3,12 @@
   "title": "HouseLayoutContract",
   "description": "Shared 2D/3D layout schema across Python agents, ASP.NET Core, React, and Flutter",
   "type": "object",
-  "required": ["design_id", "floor_count", "total_built_up_area_sqft", "rooms"],
+  "required": [
+    "design_id",
+    "floor_count",
+    "total_built_up_area_sqft",
+    "rooms"
+  ],
   "properties": {
     "design_id": {
       "type": "string",
@@ -34,23 +39,69 @@
           "windows"
         ],
         "properties": {
-          "room_id": { "type": "string", "format": "uuid" },
-          "room_type": { "type": "string" },
-          "floor": { "type": "integer", "minimum": 1 },
-          "x": { "type": "number", "description": "Bottom-left corner X coordinate (ft)" },
-          "y": { "type": "number", "description": "Bottom-left corner Y coordinate (ft)" },
-          "width": { "type": "number", "minimum": 1, "description": "Width along X-axis (ft)" },
-          "length": { "type": "number", "minimum": 1, "description": "Length along Y-axis (ft)" },
-          "wall_height": { "type": "number", "default": 9.0, "description": "Ceiling height (ft)" },
+          "room_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "room_type": {
+            "type": "string"
+          },
+          "floor": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "x": {
+            "type": "number",
+            "description": "Bottom-left corner X coordinate (ft)"
+          },
+          "y": {
+            "type": "number",
+            "description": "Bottom-left corner Y coordinate (ft)"
+          },
+          "width": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Width along X-axis (ft)"
+          },
+          "length": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Length along Y-axis (ft)"
+          },
+          "wall_height": {
+            "type": "number",
+            "default": 9.0,
+            "description": "Ceiling height (ft)"
+          },
           "doors": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["wall", "offset", "width"],
+              "required": [
+                "wall",
+                "offset",
+                "width"
+              ],
               "properties": {
-                "wall": { "type": "string", "enum": ["north", "south", "east", "west"] },
-                "offset": { "type": "number", "minimum": 0, "description": "Offset from wall origin (ft)" },
-                "width": { "type": "number", "minimum": 1, "description": "Door opening width (ft)" }
+                "wall": {
+                  "type": "string",
+                  "enum": [
+                    "north",
+                    "south",
+                    "east",
+                    "west"
+                  ]
+                },
+                "offset": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Offset from wall origin (ft)"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 1,
+                  "description": "Door opening width (ft)"
+                }
               }
             }
           },
@@ -58,16 +109,363 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["wall", "offset", "width"],
+              "required": [
+                "wall",
+                "offset",
+                "width"
+              ],
               "properties": {
-                "wall": { "type": "string", "enum": ["north", "south", "east", "west"] },
-                "offset": { "type": "number", "minimum": 0, "description": "Offset from wall origin (ft)" },
-                "width": { "type": "number", "minimum": 1, "description": "Window span width (ft)" }
+                "wall": {
+                  "type": "string",
+                  "enum": [
+                    "north",
+                    "south",
+                    "east",
+                    "west"
+                  ]
+                },
+                "offset": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Offset from wall origin (ft)"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 1,
+                  "description": "Window span width (ft)"
+                }
               }
             }
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
+    },
+    "template_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Template Family"
+    },
+    "design_seed": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Design Seed"
+    },
+    "design_score": {
+      "anyOf": [
+        {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Design Score"
+    },
+    "ground_footprint_sqft": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ground Footprint Sqft"
+    },
+    "connections": {
+      "items": {
+        "$ref": "#/$defs/Connection"
+      },
+      "title": "Connections",
+      "type": "array"
+    },
+    "entrances": {
+      "items": {
+        "$ref": "#/$defs/Entrance"
+      },
+      "title": "Entrances",
+      "type": "array"
+    },
+    "plot_constraints": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plot Constraints"
+    },
+    "program": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Program"
+    },
+    "candidate_summary": {
+      "additionalProperties": true,
+      "title": "Candidate Summary",
+      "type": "object"
+    },
+    "foundation_type": {
+      "description": "Foundation type suited for the terrain",
+      "enum": [
+        "slab",
+        "stepped",
+        "pile",
+        "raised"
+      ],
+      "title": "Foundation Type",
+      "type": "string"
+    },
+    "terrain_type": {
+      "default": "flat",
+      "description": "Terrain used for this design",
+      "enum": [
+        "flat",
+        "hillside",
+        "coastal"
+      ],
+      "title": "Terrain Type",
+      "type": "string"
+    },
+    "template_id": {
+      "default": "CUSTOM",
+      "description": "Identifier of the layout template used",
+      "title": "Template Id",
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "Connection": {
+      "properties": {
+        "from_room": {
+          "title": "From Room",
+          "type": "string"
+        },
+        "to_room": {
+          "title": "To Room",
+          "type": "string"
+        },
+        "kind": {
+          "default": "door",
+          "enum": [
+            "door",
+            "open",
+            "stair"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_room",
+        "to_room"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
+    "Entrance": {
+      "properties": {
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "wall": {
+          "enum": [
+            "north",
+            "south",
+            "east",
+            "west"
+          ],
+          "title": "Wall",
+          "type": "string"
+        },
+        "offset": {
+          "minimum": 0,
+          "title": "Offset",
+          "type": "number"
+        },
+        "width": {
+          "default": 3,
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        }
+      },
+      "required": [
+        "room_id",
+        "wall",
+        "offset"
+      ],
+      "title": "Entrance",
+      "type": "object"
+    },
+    "Opening": {
+      "properties": {
+        "wall": {
+          "description": "Which wall the opening is on",
+          "enum": [
+            "north",
+            "south",
+            "east",
+            "west"
+          ],
+          "title": "Wall",
+          "type": "string"
+        },
+        "offset": {
+          "description": "Offset from wall origin in feet",
+          "minimum": 0,
+          "title": "Offset",
+          "type": "number"
+        },
+        "width": {
+          "description": "Width of the opening in feet",
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        }
+      },
+      "required": [
+        "wall",
+        "offset",
+        "width"
+      ],
+      "title": "Opening",
+      "type": "object"
+    },
+    "RoomLayout": {
+      "properties": {
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "room_type": {
+          "description": "Type of room (e.g., living_room, kitchen)",
+          "title": "Room Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable display name",
+          "title": "Name"
+        },
+        "floor": {
+          "description": "Floor number",
+          "minimum": 1,
+          "title": "Floor",
+          "type": "integer"
+        },
+        "x": {
+          "description": "Bottom-left corner X coordinate in feet",
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Bottom-left corner Y coordinate in feet",
+          "title": "Y",
+          "type": "number"
+        },
+        "width": {
+          "description": "Width along X-axis in feet",
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "length": {
+          "description": "Length along Y-axis in feet",
+          "exclusiveMinimum": 0,
+          "title": "Length",
+          "type": "number"
+        },
+        "area_sqft": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Computed room area (width \u00d7 length)",
+          "title": "Area Sqft"
+        },
+        "wall_height": {
+          "default": 9.0,
+          "description": "Ceiling height in feet",
+          "title": "Wall Height",
+          "type": "number"
+        },
+        "doors": {
+          "items": {
+            "$ref": "#/$defs/Opening"
+          },
+          "title": "Doors",
+          "type": "array"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Opening"
+          },
+          "title": "Windows",
+          "type": "array"
+        }
+      },
+      "required": [
+        "room_type",
+        "floor",
+        "x",
+        "y",
+        "width",
+        "length"
+      ],
+      "title": "RoomLayout",
+      "type": "object"
     }
   }
 }

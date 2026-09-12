@@ -17,8 +17,8 @@ export interface Room {
   width: number;
   length: number;
   wall_height: number;
-  doors: Opening[];
-  windows: Opening[];
+  doors?: Opening[];
+  windows?: Opening[];
 }
 
 export interface FloorPlanData {
@@ -26,6 +26,7 @@ export interface FloorPlanData {
   floor_count: number;
   total_built_up_area_sqft: number;
   rooms: Room[];
+  entrances?: ({ room_id: string } & Opening)[];
 }
 
 interface FloorPlanViewerProps {
@@ -38,6 +39,16 @@ interface FloorPlanViewerProps {
 // Color palette for distinguishing rooms by type
 const ROOM_COLORS: Record<string, string> = {
   living_room: '#E0F2FE',
+  dining: '#FCE7F3',
+  hallway: '#F1F5F9',
+  foyer: '#F1F5F9',
+  entrance: '#CCFBF1',
+  utility: '#FEF3C7',
+  family_lounge: '#E0F2FE',
+  home_office: '#EDE9FE',
+  balcony: '#DCFCE7',
+  veranda: '#DCFCE7',
+  bathroom_attached: '#D1FAE5',
   dining_room: '#FCE7F3',
   kitchen: '#FEF3C7',
   bedroom_1: '#DBEAFE',
@@ -55,9 +66,8 @@ const DEFAULT_ROOM_COLOR = '#F8FAFC';
 
 export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPerFoot = 20, floorFilter }) => {
   // Filter rooms by floor if specified
-  const displayRooms = floorFilter
-    ? data.rooms.filter((r) => r.floor === floorFilter)
-    : data.rooms;
+  const displayedFloor = floorFilter ?? Math.min(...data.rooms.map(r => r.floor));
+  const displayRooms = data.rooms.filter(r => r.floor === displayedFloor);
 
   if (displayRooms.length === 0) {
     return (
@@ -95,10 +105,13 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
         display: 'flex',
       }}
     >
-      <div style={{ margin: 'auto', width: 'fit-content', height: 'fit-content' }}>
+      <div style={{ margin: 'auto', width: '100%', height: '100%' }}>
         <svg
-        width={totalWidth + padding * 2}
-        height={totalHeight + padding * 2}
+        aria-label={`Floor ${displayedFloor} conceptual plan`}
+        viewBox={`0 0 ${totalWidth + padding * 2} ${totalHeight + padding * 2}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           backgroundColor: '#ffffff',
           boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
@@ -145,10 +158,27 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
                 />
 
                 {/* Windows (light blue gaps) */}
-                {room.windows.map((win, i) => renderOpening(win, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'window', i))}
+                {(room.windows ?? []).map((win, i) => renderOpening(win, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'window', i))}
 
                 {/* Doors (white gaps) */}
-                {room.doors.map((door, i) => renderOpening(door, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'door', i))}
+                {(room.doors ?? []).map((door, i) => renderOpening(door, svgX, svgY, svgWidth, svgHeight, pixelsPerFoot, 'door', i))}
+
+                {room.room_type.startsWith('staircase') && (
+                  <g aria-label="Staircase treads" stroke="#94a3b8" strokeWidth="1">
+                    {Array.from({ length: 8 }, (_, i) => <line key={i}
+                      x1={svgX + 5} x2={svgX + svgWidth - 5}
+                      y1={svgY + (i + 1) * svgHeight / 9} y2={svgY + (i + 1) * svgHeight / 9} />)}
+                  </g>
+                )}
+                {(data.entrances ?? []).filter(e => e.room_id === room.room_id).map((e, i) => {
+                  const horizontal = e.wall === 'north' || e.wall === 'south';
+                  const ex = horizontal ? svgX + (e.offset + e.width / 2) * pixelsPerFoot : e.wall === 'east' ? svgX + svgWidth : svgX;
+                  const ey = horizontal ? e.wall === 'north' ? svgY : svgY + svgHeight : svgY + svgHeight - (e.offset + e.width / 2) * pixelsPerFoot;
+                  return <g key={`entrance-${i}`} aria-label="Main entrance">
+                    <circle cx={ex} cy={ey} r="5" fill="#059669" />
+                    <text x={ex + 8} y={ey - 8} fontSize="11" fill="#047857">Entry</text>
+                  </g>;
+                })}
 
                 {/* Room Label */}
                 <text

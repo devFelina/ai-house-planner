@@ -23,7 +23,15 @@ public record HouseDesignSummaryDto(
     string? TemplateId,
     string? TerrainType,
     bool IsCurrent,
-    List<RoomSummaryDto> Rooms
+    List<RoomSummaryDto> Rooms,
+    string? TemplateFamily = null,
+    long? DesignSeed = null,
+    decimal? DesignScore = null,
+    decimal? GroundFootprintSqft = null,
+    System.Text.Json.JsonElement? Connections = null,
+    System.Text.Json.JsonElement? Entrances = null,
+    System.Text.Json.JsonElement? PlotConstraints = null,
+    System.Text.Json.JsonElement? CandidateSummary = null
 );
 
 public record RoomSummaryDto(

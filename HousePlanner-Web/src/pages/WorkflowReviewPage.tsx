@@ -82,6 +82,15 @@ export const WorkflowReviewPage: React.FC = () => {
     );
   }
 
+  if (workflow?.status === 'failed') {
+    return <div role="alert" className="p-8 text-center">
+      <h2>Design generation could not complete</h2>
+      <p>{workflow.terrainType === 'unknown'
+        ? 'Provide a manual terrain classification and submit again.'
+        : 'No valid layout was saved. Review plot dimensions and room requirements, then submit again.'}</p>
+    </div>;
+  }
+
   // ─── Design Not Ready ───
   if (!workflow || !workflow.design) {
     return (
@@ -112,6 +121,7 @@ export const WorkflowReviewPage: React.FC = () => {
     design_id: workflow.design.designId,
     floor_count: workflow.design.floorCount,
     total_built_up_area_sqft: workflow.design.totalBuiltUpAreaSqft,
+    entrances: workflow.design.entrances,
     rooms: workflow.design.rooms.map(r => ({
       room_id: r.roomId,
       room_type: r.roomType,
@@ -170,7 +180,13 @@ export const WorkflowReviewPage: React.FC = () => {
             <h3 className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold mb-3">Design Info</h3>
             <ul className="text-sm text-zinc-700 space-y-2">
               <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Version</span> <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">v{workflow.design.version}</span></li>
-              <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Template</span> <span className="font-bold">{workflow.design.templateId || 'N/A'}</span></li>
+              <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Family</span> <span className="font-bold">{workflow.design.templateFamily || workflow.design.templateId || 'N/A'}</span></li>
+              {workflow.design.designScore != null && (
+                <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Score</span> <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{workflow.design.designScore}/100</span></li>
+              )}
+              {workflow.design.candidateSummary?.valid_count != null && (
+                <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Candidates</span> <span className="font-bold">{workflow.design.candidateSummary.valid_count + (workflow.design.candidateSummary.rejected_count || 0)} generated</span></li>
+              )}
             </ul>
           </div>
 
@@ -266,6 +282,8 @@ export const WorkflowReviewPage: React.FC = () => {
 
         {/* SVG Floor Plan */}
         <div className="flex-1 overflow-auto relative">
+          {workflow.design.plotConstraints?.dimensions_estimated &&
+            <p className="px-4 text-sm text-zinc-500">Plot dimensions are estimated. Supply measured width and length to refine the plan.</p>}
           <FloorPlanViewer
             data={floorPlanData}
             pixelsPerFoot={22}
