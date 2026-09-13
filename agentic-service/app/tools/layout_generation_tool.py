@@ -9,6 +9,10 @@ from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
 from app.design.models import Requirements
 from app.design.scoring import score_layout
 from app.design.revision import apply_supported_revision, requests_another_design
+from app.design.quality_metrics import (
+    CIRCULATION_VERY_POOR_RATIO, HALLWAY_EXTREME_LENGTH_FT,
+    NARROW_PLOT_THRESHOLD_FT, calculate_quality_metrics, quality_feedback,
+)
 from app.design.plot_constraints import PlotConstraints
 from app.design.spatial_program import build_program
 from app.design.topology_registry import eligible_topologies, topology_dict
@@ -18,6 +22,11 @@ from app.tools.land_utils import SQFT_PER_PERCH, MAX_COVERAGE_RATIO
 
 AI_CANDIDATE_COUNT = 3
 MAX_AI_REVISIONS = 3
+CANDIDATE_STRATEGIES = (
+    'Explore compact centralized circulation with a short shared private lobby.',
+    'Explore a winged or L-shaped public/private zoning strategy suited to this plot.',
+    'Explore an open public zone with a compact central wet/service core and bedroom cluster.',
+)
 
 SYSTEM_PROMPT = """You are the Design Agent of an AI-Assisted Home Design & Cost Planner.
 Create a realistic conceptual residential floor plan from the supplied homeowner
@@ -43,6 +52,23 @@ wall opportunities and homeowner preferences. Ground floors generally prioritize
 and service spaces; upper floors generally prioritize private spaces. These are design
 preferences, not a fixed arrangement. Do not output construction materials, structure,
 electrical, plumbing or approval claims. Deterministic validation is the final authority.
+
+SPACE EFFICIENCY IS IMPORTANT. Hallways are support space, not primary living space.
+Prefer circulation at or below 8% of built-up area; 8-12% is acceptable, while more
+than 12% needs a strong plot reason. Do not solve access with one long hallway. For a
+compact single-storey home, consider a short private bedroom lobby or let public rooms
+provide appropriate public circulation. Keep typical hallways around 3.5-4.5 ft wide.
+Avoid long dead ends, duplicated paths, and a hallway serving only one room.
+
+Reason in PUBLIC, PRIVATE, and SERVICE zones. Place a common bathroom near the bedroom
+cluster and shared circulation, never as a passage room, and normally away from a direct
+kitchen or primary dining opening. Group kitchen, bathrooms, and utility into a reasonable
+wet/service zone where practical. Prefer exterior-wall opportunities for living, bedrooms,
+kitchen, and bathrooms. Before returning JSON, internally check whether circulation can be
+shortened, the bathroom can move closer to bedrooms, service rooms can group better, room
+proportions can improve, or unusable strips and voids can be removed. If so, improve the
+arrangement first. Produce a substantially different spatial strategy for each candidate,
+not a coordinate shift or resize of the same hallway plan.
 """
 
 def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dict,
@@ -55,13 +81,30 @@ def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dic
         values['style'] = values.pop('style_preference')
     if 'accessibility_preference' in values and 'accessibility' not in values:
         values['accessibility'] = values.pop('accessibility_preference')
+    aliases = {
+        'architectural_style': 'style', 'master_ensuite': 'attached_bathroom',
+        'separate_dining': 'dining_required', 'parking_required': 'parking',
+        'utility': 'utility_room',
+    }
+    for source_key, target_key in aliases.items():
+        if source_key in values and target_key not in values:
+            values[target_key] = values.pop(source_key)
+    if values.get('space_priority') == 'outdoor_garden':
+        values['garden_priority'] = True
+    if values.get('space_priority') == 'compact_cost_efficient':
+        values['compact_priority'] = True
+    if values.get('attached_bathroom'):
+        values['master_bedroom'] = True
     if design_seed is not None:
         values['design_seed'] = design_seed
+    values = {k: v for k, v in values.items() if v is not None}
     req = Requirements.model_validate(values)
     source = plot_constraints if plot_constraints is not None else preferences.get('plot_constraints', {})
     if isinstance(source, PlotConstraints):
         source = source.model_dump(include=set(PlotConstraints.model_fields))
     raw = dict(source)
+    if raw.get('entrance_side') == 'road_side':
+        raw['entrance_side'] = raw.get('road_side', preferences.get('road_side', 'south'))
     for key in PlotConstraints.model_fields:
         if key in preferences and key not in raw:
             raw[key] = preferences[key]
@@ -72,7 +115,7 @@ def prepare_inputs(land_size_perches: float, terrain_type: str, preferences: dic
 def generate_layout(land_size_perches: float, terrain_type: str, preferences: dict,
                     previous_design: Optional[dict] = None, revision_reason: Optional[str] = None,
                     *, plot_constraints: Union[dict, Optional[PlotConstraints]] = None,
-                    design_seed: Optional[int] = None) -> DesignResult:
+                    design_seed: Optional[int] = None, budget_lkr: Optional[float] = None) -> DesignResult:
     try:
         revised_preferences, applied_revision = apply_supported_revision(preferences, revision_reason)
         req, plot = prepare_inputs(land_size_perches, terrain_type, revised_preferences, plot_constraints, design_seed)
@@ -88,7 +131,9 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
                         'spatial_program': build_program(req).model_dump(),
                         'previous_design': previous_design,
                         'revision_feedback': revision_reason,
-                        'design_seed': req.design_seed}
+                        'design_seed': req.design_seed,
+                        'budget_lkr': budget_lkr,
+                        'budget_note': 'Use only as a conceptual size-efficiency signal; do not estimate costs.'}
         valid_candidates = []
         failures = []
         eligible_family_names = {item['name'] for item in base_payload['eligible_families']}
@@ -100,7 +145,7 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
                 for candidate_index in range(AI_CANDIDATE_COUNT):
                     print(f'[Design Agent] Generating AI candidate {candidate_index + 1}/{AI_CANDIDATE_COUNT}')
                     payload = dict(base_payload, candidate_index=candidate_index,
-                                   diversity_instruction='Use a genuinely different spatial strategy from prior candidates.')
+                                   diversity_instruction=CANDIDATE_STRATEGIES[candidate_index])
                     prompt = json.dumps(payload, default=str)
                     prior = None
                     for revision in range(MAX_AI_REVISIONS):
@@ -125,12 +170,36 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
                             candidate.program = build_program(req).model_dump()
                             check = validate_geometry(candidate.rooms, req.bedrooms, req.floors,
                                                       land_size_perches, plot=plot, design=candidate)
+                            metrics = calculate_quality_metrics(candidate)
+                            narrow_plot = min(plot.buildable_width, plot.buildable_length) < NARROW_PLOT_THRESHOLD_FT
+                            if not narrow_plot and metrics['circulation_ratio'] > CIRCULATION_VERY_POOR_RATIO:
+                                check.fail(
+                                    'circulation_efficiency',
+                                    f"Circulation area is {metrics['circulation_area']:.1f} sqft of "
+                                    f"{metrics['actual_room_footprint_area']:.1f} sqft "
+                                    f"({metrics['circulation_ratio']:.1%}). Reduce hallway length or use "
+                                    "a compact bedroom cluster."
+                                )
+                            if not narrow_plot and metrics['longest_hallway_ft'] > HALLWAY_EXTREME_LENGTH_FT:
+                                check.fail(
+                                    'hallway_length',
+                                    f"Longest hallway is {metrics['longest_hallway_ft']:.1f} ft. "
+                                    "Create a substantially different compact circulation strategy."
+                                )
+                            candidate_fingerprint = geometry_fingerprint(candidate)
+                            if any(item.geometry_fingerprint == candidate_fingerprint for item in valid_candidates):
+                                check.fail(
+                                    'duplicate_geometry',
+                                    'This duplicates an earlier candidate. Use a meaningfully different zoning and circulation strategy.'
+                                )
                             if check.passed:
                                 candidate.design_score, breakdown = score_layout(candidate, req, plot)
-                                candidate.geometry_fingerprint = geometry_fingerprint(candidate)
+                                candidate.geometry_fingerprint = candidate_fingerprint
                                 candidate.candidate_summary = {'candidate_index': candidate_index,
                                                                'revision_count': revision,
-                                                               'score_breakdown': breakdown}
+                                                               'score_breakdown': breakdown,
+                                                               'quality_metrics': metrics,
+                                                               'quality_feedback': quality_feedback(metrics)}
                                 valid_candidates.append(candidate)
                                 print(f'[Geometry Validator] Candidate {candidate_index + 1} passed; score={candidate.design_score}')
                                 break
@@ -195,6 +264,15 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
     known_extras = set(PlotConstraints.model_fields) | {'plot_constraints', 'photo_url'}
     unhandled = sorted(set(req.model_extra or {}) - known_extras)
     result.candidate_summary.update(generation_mode=mode, unhandled_preferences=unhandled)
+    final_metrics = calculate_quality_metrics(result)
+    result.candidate_summary['quality_metrics'] = final_metrics
+    result.candidate_summary['quality_feedback'] = quality_feedback(final_metrics)
+    if (final_metrics['circulation_ratio'] > 0.12 and
+            min(plot.buildable_width, plot.buildable_length) < NARROW_PLOT_THRESHOLD_FT):
+        result.candidate_summary['circulation_exception'] = (
+            'Higher circulation ratio retained because the buildable plot is narrow; '
+            'the score still includes the circulation penalty.'
+        )
     if unhandled:
         result.candidate_summary.setdefault('notes', []).append('Unrecognized preferences were not applied: '+', '.join(unhandled))
     if revision_reason:
