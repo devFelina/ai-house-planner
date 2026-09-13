@@ -85,13 +85,25 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
 
   const totalWidth = (maxX - minX) * pixelsPerFoot;
   const totalHeight = (maxY - minY) * pixelsPerFoot;
-  const padding = 50;
+  const padding = Math.max(18, Math.min(42, Math.min(totalWidth, totalHeight) * 0.06));
 
   const formatRoomLabel = (type: string) => {
     return type
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  const roomLabel = (room: Room, width: number, height: number) => {
+    const full = room.name || formatRoomLabel(room.room_type);
+    const abbreviations: Record<string, string> = {
+      hallway: 'Hall', bathroom_attached: 'Ensuite', living_room: 'Living',
+      home_office: 'Office', staircase: 'Stairs', utility: 'Utility',
+    };
+    const available = Math.max(4, Math.floor(width / 7));
+    return width < 90 || height < 48
+      ? (abbreviations[room.room_type] || (full.length > available ? `${full.slice(0, Math.max(3, available - 1))}…` : full))
+      : full;
   };
 
   return (
@@ -131,6 +143,9 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
 
             const roomCenterY = svgY + svgHeight / 2;
             const roomCenterX = svgX + svgWidth / 2;
+            const labelFontSize = Math.max(8, Math.min(13, Math.min(svgWidth / 7, svgHeight / 4)));
+            const showDimensions = svgWidth >= 72 && svgHeight >= 48;
+            const showArea = svgWidth >= 95 && svgHeight >= 72;
 
             const fillColor = ROOM_COLORS[room.room_type] || DEFAULT_ROOM_COLOR;
 
@@ -183,19 +198,19 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
                 {/* Room Label */}
                 <text
                   x={roomCenterX}
-                  y={roomCenterY - 8}
+                  y={roomCenterY - (showDimensions ? 7 : 0)}
                   textAnchor="middle"
                   alignmentBaseline="middle"
                   fill="#334155"
                   fontFamily="'Inter', 'Roboto', sans-serif"
-                  fontSize="13"
+                  fontSize={labelFontSize}
                   fontWeight="600"
                 >
-                  {room.name || formatRoomLabel(room.room_type)}
+                  {roomLabel(room, svgWidth, svgHeight)}
                 </text>
 
                 {/* Dimensions */}
-                <text
+                {showDimensions && <text
                   x={roomCenterX}
                   y={roomCenterY + 10}
                   textAnchor="middle"
@@ -205,10 +220,10 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
                   fontSize="11"
                 >
                   {room.width}&apos; × {room.length}&apos;
-                </text>
+                </text>}
 
                 {/* Area */}
-                <text
+                {showArea && <text
                   x={roomCenterX}
                   y={roomCenterY + 24}
                   textAnchor="middle"
@@ -218,7 +233,7 @@ export const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ data, pixelsPe
                   fontSize="10"
                 >
                   {Math.round(room.width * room.length)} sqft
-                </text>
+                </text>}
               </g>
             );
           })}

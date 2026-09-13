@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, Home, Map, DollarSign, Layers, CheckCircle2 } from 'lucide-react';
+import { workflowService } from '../services/workflowService';
 
 interface IntakeFormData {
   budget: string;
@@ -10,11 +11,28 @@ interface IntakeFormData {
   terrainType: string;
   photo: File | null;
   bedrooms: string;
+  bathrooms: string;
   floors: string;
   architecturalStyle: string;
   plotWidth: string;
   plotLength: string;
   roadSide: string;
+  northDirection: string;
+  entranceSide: string;
+  frontSetback: string;
+  rearSetback: string;
+  leftSetback: string;
+  rightSetback: string;
+  openPlan: boolean;
+  masterEnsuite: boolean;
+  separateDining: boolean;
+  homeOffice: boolean;
+  balcony: boolean;
+  veranda: boolean;
+  utilityRoom: boolean;
+  parkingRequired: boolean;
+  accessibility: boolean;
+  spacePriority: string;
 }
 
 const IntakeForm: React.FC = () => {
@@ -26,11 +44,18 @@ const IntakeForm: React.FC = () => {
     terrainType: 'flat/urban',
     photo: null,
     bedrooms: '3',
+    bathrooms: '1',
     floors: '1',
     architecturalStyle: 'Modern Minimalist',
     plotWidth: '',
     plotLength: '',
     roadSide: 'south',
+    northDirection: 'north',
+    entranceSide: 'road_side',
+    frontSetback: '', rearSetback: '', leftSetback: '', rightSetback: '',
+    openPlan: false, masterEnsuite: false, separateDining: false,
+    homeOffice: false, balcony: false, veranda: false, utilityRoom: false,
+    parkingRequired: false, accessibility: false, spacePriority: 'balanced',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,61 +74,64 @@ const IntakeForm: React.FC = () => {
     }
   };
 
+  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: checked }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage('');
 
     try {
-      // Construct payload for Python Agentic Service
+      // Submit through the public gateway; Python remains an internal service.
       const parsedBudget = parseFloat(formData.budget);
       const payload: any = {
-        submission_id: crypto.randomUUID(),
-        land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
-        manual_terrain_type: formData.terrainType,
+        landSizePerches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
+        manualTerrainType: formData.terrainType,
         preferences: {
           bedrooms: parseInt(formData.bedrooms) || 3,
+          bathrooms: parseInt(formData.bathrooms) || 1,
           floors: parseInt(formData.floors) || 1,
-          style: formData.architecturalStyle
+          architecturalStyle: formData.architecturalStyle,
+          openPlan: formData.openPlan,
+          masterEnsuite: formData.masterEnsuite,
+          separateDining: formData.separateDining,
+          homeOffice: formData.homeOffice,
+          balcony: formData.balcony,
+          veranda: formData.veranda,
+          utilityRoom: formData.utilityRoom,
+          parkingRequired: formData.parkingRequired,
+          accessibility: formData.accessibility,
+          spacePriority: formData.spacePriority,
+          circulationPreference: 'space_efficient'
         }
       };
 
-      payload.plot_constraints = {
+      payload.plotConstraints = {
         road_side: formData.roadSide,
+        north_direction: formData.northDirection,
+        entrance_side: formData.entranceSide === 'road_side' ? formData.roadSide : formData.entranceSide,
         ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
         ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
+        setbacks: {
+          ...(formData.frontSetback ? { front: Number(formData.frontSetback) } : {}),
+          ...(formData.rearSetback ? { rear: Number(formData.rearSetback) } : {}),
+          ...(formData.leftSetback ? { left: Number(formData.leftSetback) } : {}),
+          ...(formData.rightSetback ? { right: Number(formData.rightSetback) } : {}),
+        }
       };
       
-      payload.design_seed = Math.floor(Math.random() * 1000000);
+      payload.designSeed = crypto.getRandomValues(new Uint32Array(1))[0];
 
       if (!isNaN(parsedBudget)) {
-        payload.budget_lkr = parsedBudget;
+        payload.budgetLkr = parsedBudget;
       }
 
-      // Call ASP.NET API
-      const response = await fetch('http://localhost:5265/api/aigeneration/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          BudgetLkr: payload.budget_lkr,
-          LandSizePerches: payload.land_size_perches,
-          ManualTerrainType: payload.manual_terrain_type,
-          Preferences: payload.preferences,
-          PlotConstraints: payload.plot_constraints,
-          DesignSeed: payload.design_seed
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to connect to the backend server.');
-      }
-
-      const result = await response.json();
-      console.log('AI Coordinator Result:', result);
+      const result = await workflowService.startDesign(payload);
       
-      setWorkflowId(result.WorkflowId || result.workflowId);
+      setWorkflowId(result.workflowId);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);
@@ -233,7 +261,7 @@ const IntakeForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Terrain Fallback Type</label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Used if photo is missing or AI vision fails.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload a clear land photo to help AI identify terrain characteristics. If no photo is available, choose the terrain manually.</p>
               <select 
                 name="terrainType"
                 value={formData.terrainType}
@@ -256,7 +284,7 @@ const IntakeForm: React.FC = () => {
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">Missing dimensions will be estimated for conceptual planning.</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plot Width (ft)</label>
               <input 
@@ -292,7 +320,32 @@ const IntakeForm: React.FC = () => {
                 {['south', 'north', 'east', 'west'].map(side => <option key={side} value={side}>{side.charAt(0).toUpperCase() + side.slice(1)}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">North Direction / Orientation</label>
+              <select name="northDirection" value={formData.northDirection} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
+                {['north', 'east', 'south', 'west'].map(side => <option key={side} value={side}>{side[0].toUpperCase() + side.slice(1)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Main Access / Entrance Side</label>
+              <select name="entranceSide" value={formData.entranceSide} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
+                <option value="road_side">Road Side</option>
+                {['north', 'east', 'south', 'west'].map(side => <option key={side} value={side}>{side[0].toUpperCase() + side.slice(1)}</option>)}
+              </select>
+            </div>
           </div>
+
+          <details className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <summary className="cursor-pointer font-semibold text-sm text-gray-700 dark:text-gray-200">Plot Setbacks (Optional)</summary>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Conceptual planning values only.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+              {([['frontSetback', 'Front'], ['rearSetback', 'Rear'], ['leftSetback', 'Left'], ['rightSetback', 'Right']] as const).map(([name, label]) => (
+                <label key={name} className="text-xs text-gray-600 dark:text-gray-300">{label} (ft)
+                  <input name={name} type="number" min="0" step="any" value={formData[name]} onChange={handleInputChange} className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" />
+                </label>
+              ))}
+            </div>
+          </details>
         </div>
 
         {/* Section 3: Design Preferences */}
@@ -302,7 +355,7 @@ const IntakeForm: React.FC = () => {
             Design Preferences
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bedrooms</label>
               <input 
@@ -314,6 +367,10 @@ const IntakeForm: React.FC = () => {
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 transition-colors"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bathrooms</label>
+              <input type="number" name="bathrooms" min="1" max="6" required value={formData.bathrooms} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Floors</label>
@@ -341,6 +398,24 @@ const IntakeForm: React.FC = () => {
                 <option value="Tropical Modernism">Tropical Modernism</option>
               </select>
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Space Priority</label>
+            <select name="spacePriority" value={formData.spacePriority} onChange={handleInputChange} className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
+              <option value="compact_cost_efficient">Compact &amp; Cost Efficient</option><option value="balanced">Balanced</option>
+              <option value="spacious_living">Spacious Living Areas</option><option value="larger_bedrooms">Larger Bedrooms</option>
+              <option value="outdoor_garden">Outdoor / Garden Priority</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([['openPlan', 'Open-plan Living / Dining'], ['masterEnsuite', 'Master Bedroom with Attached Bathroom'],
+              ['separateDining', 'Separate Dining Area'], ['homeOffice', 'Home Office'], ['balcony', 'Balcony'],
+              ['veranda', 'Veranda'], ['utilityRoom', 'Utility / Laundry'], ['parkingRequired', 'Parking Required'],
+              ['accessibility', 'Accessible / Reduced-Step Layout']] as const).map(([name, label]) => (
+              <label key={name} className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
+                <input type="checkbox" name={name} checked={formData[name]} onChange={handleToggle} className="h-4 w-4 accent-indigo-600" />{label}
+              </label>
+            ))}
           </div>
         </div>
 

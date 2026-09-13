@@ -20,62 +20,11 @@ public class InternalWorkflowController : ControllerBase
         _logger = logger;
     }
 
-    private async Task<WorkflowState> EnsureWorkflowStateExists(Guid workflowId)
+    private async Task<WorkflowState?> FindWorkflowState(Guid workflowId)
     {
         var workflow = await _context.WorkflowStates
             .Include(w => w.HouseDesigns)
             .FirstOrDefaultAsync(w => w.Id == workflowId);
-
-        if (workflow != null) return workflow;
-
-        // Create dummy hierarchy to satisfy foreign key constraints because Intake is skipped
-        var dummyRole = await _context.Set<Role>().FirstOrDefaultAsync();
-        if (dummyRole == null)
-        {
-            dummyRole = new Role { Id = 1, Name = "Client" };
-            _context.Set<Role>().Add(dummyRole);
-            await _context.SaveChangesAsync();
-        }
-
-        var dummyUser = await _context.Users.FirstOrDefaultAsync();
-        if (dummyUser == null)
-        {
-            dummyUser = new User 
-            { 
-                Id = Guid.NewGuid(), 
-                Email = "dummy@client.com", 
-                PasswordHash = "hash", 
-                FullName = "Dummy Client", 
-                RoleId = dummyRole.Id 
-            };
-            _context.Users.Add(dummyUser);
-            await _context.SaveChangesAsync();
-        }
-
-        var landId = Guid.NewGuid();
-        var dummyLand = new LandSubmission
-        {
-            Id = landId,
-            ClientId = dummyUser.Id,
-            LandSizePerches = 10,
-            PreferredBedrooms = 3,
-            PreferredFloors = 1,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
-        _context.LandSubmissions.Add(dummyLand);
-        await _context.SaveChangesAsync();
-
-        workflow = new WorkflowState
-        {
-            Id = workflowId,
-            LandSubmissionId = landId,
-            Status = "pending",
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
-        _context.WorkflowStates.Add(workflow);
-        await _context.SaveChangesAsync();
 
         return workflow;
     }
@@ -90,7 +39,9 @@ public class InternalWorkflowController : ControllerBase
     {
         try
         {
-            var workflow = await EnsureWorkflowStateExists(id);
+            var workflow = await FindWorkflowState(id);
+            if (workflow is null)
+                return NotFound(new { message = $"Unknown workflow {id}; callback was not persisted." });
 
             // Extract required fields from the JSON contract
             int floorCount = layoutData.GetProperty("floor_count").GetInt32();
@@ -119,7 +70,7 @@ public class InternalWorkflowController : ControllerBase
             var newDesign = new HouseDesign
             {
                 WorkflowStateId = id,
-                Version = workflow.HouseDesigns.Count + 1, // Increment revision version
+                Version = (workflow.HouseDesigns.Count == 0 ? 0 : workflow.HouseDesigns.Max(d => d.Version)) + 1,
                 FloorCount = floorCount,
                 TotalBuiltUpAreaSqft = totalArea,
                 FoundationType = foundationType,
@@ -185,7 +136,8 @@ public class InternalWorkflowController : ControllerBase
     {
         if (!data.TryGetProperty("status", out var status) || status.GetString() != "failed")
             return BadRequest(new { message = "This endpoint accepts only generation failure." });
-        var workflow = await EnsureWorkflowStateExists(id);
+        var workflow = await FindWorkflowState(id);
+        if (workflow is null) return NotFound(new { message = $"Unknown workflow {id}." });
         workflow.Status = "failed";
         workflow.ApprovalStatus = "not_requested";
         workflow.UpdatedAt = DateTimeOffset.UtcNow;
@@ -201,7 +153,8 @@ public class InternalWorkflowController : ControllerBase
     {
         try
         {
-            var workflow = await EnsureWorkflowStateExists(id);
+            var workflow = await FindWorkflowState(id);
+            if (workflow is null) return NotFound(new { message = $"Unknown workflow {id}." });
 
             if (terrainData.TryGetProperty("terrain_type", out var terrainProp))
                 workflow.TerrainType = terrainProp.GetString();

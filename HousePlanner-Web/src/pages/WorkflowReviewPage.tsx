@@ -142,7 +142,11 @@ export const WorkflowReviewPage: React.FC = () => {
   const handleAction = async (decision: 'approve' | 'reject' | 'request_revision') => {
     if (!id) return;
     try {
-      await workflowService.approveWorkflow(id, decision, decision === 'reject' ? 'Architect rejected' : '');
+      const notes = decision === 'request_revision'
+        ? window.prompt('Describe the design change you want:')
+        : decision === 'reject' ? 'Architect rejected' : undefined;
+      if (decision === 'request_revision' && !notes) return;
+      await workflowService.approveWorkflow(id, decision, notes || undefined);
       alert(`Workflow ${decision} submitted successfully!`);
     } catch (e: any) {
       alert(`Error: ${e.message}`);
@@ -184,8 +188,17 @@ export const WorkflowReviewPage: React.FC = () => {
               {workflow.design.designScore != null && (
                 <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Score</span> <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{workflow.design.designScore}/100</span></li>
               )}
+              {workflow.design.designSeed != null && (
+                <li className="flex justify-between gap-3"><span className="text-zinc-500">Design Seed</span><code>{workflow.design.designSeed}</code></li>
+              )}
+              {workflow.design.geometryFingerprint && (
+                <li className="flex justify-between gap-3"><span className="text-zinc-500">Fingerprint</span><code title={workflow.design.geometryFingerprint}>{workflow.design.geometryFingerprint.slice(0, 12)}…</code></li>
+              )}
+              {workflow.design.candidateSummary?.generation_mode && (
+                <li className="flex justify-between gap-3"><span className="text-zinc-500">Generation</span><code>{workflow.design.candidateSummary.generation_mode}</code></li>
+              )}
               {workflow.design.candidateSummary?.valid_count != null && (
-                <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Candidates</span> <span className="font-bold">{workflow.design.candidateSummary.valid_count + (workflow.design.candidateSummary.rejected_count || 0)} generated</span></li>
+                <li className="flex justify-between items-center"><span className="font-medium text-zinc-500">Candidates</span> <span className="font-bold">{workflow.design.candidateSummary.generated_count ?? workflow.design.candidateSummary.valid_count + (workflow.design.candidateSummary.rejected_count || 0)} / {workflow.design.candidateSummary.valid_count} valid</span></li>
               )}
             </ul>
           </div>
@@ -237,6 +250,16 @@ export const WorkflowReviewPage: React.FC = () => {
             className="w-full py-3 bg-white text-indigo-600 border-2 border-indigo-100 rounded-xl font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all text-sm"
           >
             ↻ Request Revision
+          </button>
+          <button
+            onClick={async () => {
+              if (!id) return;
+              await workflowService.approveWorkflow(id, 'request_revision', 'give me another design');
+              setWorkflow({ ...workflow, status: 'running' });
+            }}
+            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all text-sm"
+          >
+            Generate Another Design
           </button>
           <button
             onClick={() => handleAction('reject')}

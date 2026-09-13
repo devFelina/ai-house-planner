@@ -143,4 +143,24 @@ public class InternalWorkflowControllerTests
         Assert.Equal(10m, room.Length);
         Assert.Equal(120m, room.AreaSqft);
     }
+
+    [Fact]
+    public async Task UnknownCallbacksReturnNotFoundWithoutCreatingRecords()
+    {
+        var workflowId = Guid.NewGuid();
+        using var failureJson = JsonDocument.Parse("{\"status\":\"failed\"}");
+        using var terrainJson = JsonDocument.Parse("{\"terrain_type\":\"flat\"}");
+        using var designJson = JsonDocument.Parse(
+            "{\"floor_count\":1,\"total_built_up_area_sqft\":100," +
+            "\"foundation_type\":\"slab\",\"rooms\":[]}");
+
+        Assert.IsType<NotFoundObjectResult>(
+            await _controller.UpdateGenerationStatus(workflowId, failureJson.RootElement));
+        Assert.IsType<NotFoundObjectResult>(
+            await _controller.UpdateTerrain(workflowId, terrainJson.RootElement));
+        Assert.IsType<NotFoundObjectResult>(
+            await _controller.SubmitDesignRevision(workflowId, designJson.RootElement));
+        Assert.Empty(_dbContext.WorkflowStates);
+        Assert.Empty(_dbContext.HouseDesigns);
+    }
 }

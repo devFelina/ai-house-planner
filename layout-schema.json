@@ -184,6 +184,20 @@
       "default": null,
       "title": "Design Score"
     },
+    "geometry_fingerprint": {
+      "anyOf": [
+        {
+          "minLength": 64,
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Geometry Fingerprint"
+    },
     "ground_footprint_sqft": {
       "anyOf": [
         {

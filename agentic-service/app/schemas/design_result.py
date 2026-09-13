@@ -52,6 +52,7 @@ class DesignResult(BaseModel):
     template_family: Optional[str] = None
     design_seed: Optional[int] = None
     design_score: Optional[float] = Field(None, ge=0, le=100)
+    geometry_fingerprint: Optional[str] = Field(None, min_length=64, max_length=64)
     ground_footprint_sqft: Optional[float] = Field(None, ge=0)
     connections: List[Connection] = Field(default_factory=list)
     entrances: List[Entrance] = Field(default_factory=list)

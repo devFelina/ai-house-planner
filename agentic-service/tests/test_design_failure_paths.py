@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock, patch
 import pytest
 from app.tools.layout_generation_tool import generate_layout
@@ -15,21 +16,72 @@ def state():
         terrain_result={'terrain_type':'flat'})
 
 
-def test_api_failure_returns_valid_procedural_fallback():
+def test_configured_api_failure_does_not_use_procedural_fallback():
     with patch('app.tools.layout_generation_tool.GOOGLE_API_KEY', 'test'), \
          patch('app.tools.layout_generation_tool._call_gemini_design', side_effect=RuntimeError('offline')):
-        result = generate_layout(20, 'flat', {'bedrooms':3,'floors':1})
-    assert result.candidate_summary['generation_mode'] == 'procedural_api_unavailable'
-    assert result.candidate_summary['valid_count'] >= 3
+        with pytest.raises(GenerationFailure, match='Gemini design generation failed'):
+            generate_layout(20, 'flat', {'bedrooms':3,'floors':1})
 
 
 def test_invalid_final_ai_retry_never_becomes_layout():
     with patch('app.tools.layout_generation_tool.GOOGLE_API_KEY', 'test'), \
          patch('app.tools.layout_generation_tool._call_gemini_design', return_value='{"rooms": [{"x": -999}]}') as call:
-        result = generate_layout(20, 'flat', {'bedrooms':3,'floors':1})
-    assert call.call_count == 2
-    assert result.candidate_summary['generation_mode'] == 'procedural_invalid_ai_advice'
-    assert all(r.x >= 0 for r in result.rooms)
+        with pytest.raises(GenerationFailure, match='Unable to produce valid AI geometry'):
+            generate_layout(20, 'flat', {'bedrooms':3,'floors':1})
+    assert call.call_count == 9
+
+
+def test_ai_path_generates_three_valid_candidates_and_selects_highest_score():
+    narrow_plot = {'plot_width_ft': 26, 'plot_length_ft': 210}
+    generated = [
+        generate_layout(20, 'flat', {'bedrooms': 3, 'floors': 1},
+                        plot_constraints=narrow_plot, design_seed=seed)
+        for seed in (11, 22, 33)
+    ]
+    payloads = [json.dumps(item.model_dump()) for item in generated]
+    fake_client = MagicMock()
+    with patch('app.tools.layout_generation_tool.GOOGLE_API_KEY', 'test'), \
+         patch('google.genai.Client', return_value=fake_client), \
+         patch('app.tools.layout_generation_tool._call_gemini_design', side_effect=payloads) as call:
+        result = generate_layout(20, 'flat', {'bedrooms': 3, 'floors': 1},
+                                 plot_constraints=narrow_plot)
+
+    assert call.call_count == 3
+    assert result.candidate_summary['generation_mode'] == 'ai_generative'
+    assert result.candidate_summary['generated_count'] == 3
+    assert result.candidate_summary['valid_count'] == 3
+    assert result.design_score == max(c['score'] for c in result.candidate_summary['candidates'])
+    assert len(result.geometry_fingerprint) == 64
+
+
+def test_complete_optional_context_reaches_design_prompt():
+    preferences = {
+        'bedrooms': 3, 'bathrooms': 2, 'floors': 1,
+        'architecturalStyle': 'Modern Minimalist', 'open_plan': True,
+        'master_ensuite': True, 'separate_dining': True, 'home_office': True,
+        'veranda': True, 'utility_room': True, 'parking_required': True,
+        'accessibility': True, 'space_priority': 'balanced',
+        'circulation_preference': 'space_efficient',
+    }
+    plot = {
+        'plot_width_ft': 45, 'plot_length_ft': 90, 'road_side': 'south',
+        'north_direction': 'east', 'entrance_side': 'west',
+        'setbacks': {'front': 10, 'rear': 6, 'left': 5, 'right': 5},
+    }
+    with patch('app.tools.layout_generation_tool.GOOGLE_API_KEY', 'test'), \
+         patch('app.tools.layout_generation_tool._call_gemini_design', return_value='{}') as call:
+        with pytest.raises(GenerationFailure):
+            generate_layout(15, 'flat', preferences, plot_constraints=plot, budget_lkr=15_000_000)
+
+    sent = json.loads(call.call_args_list[0].args[1])
+    assert sent['budget_lkr'] == 15_000_000
+    assert sent['requirements']['bathrooms'] == 2
+    assert sent['requirements']['attached_bathroom'] is True
+    assert sent['requirements']['utility_room'] is True
+    assert sent['requirements']['circulation_preference'] == 'space_efficient'
+    assert sent['plot']['north_direction'] == 'east'
+    assert sent['plot']['entrance_side'] == 'west'
+    assert sent['plot']['setbacks']['rear'] == 6
 
 
 def test_seeded_request_never_calls_remote_advice():

@@ -26,7 +26,9 @@ public class WorkflowControllerTests
             .Options;
         _dbContext = new ApplicationDbContext(options);
         _loggerMock = new Mock<ILogger<WorkflowController>>();
-        _controller = new WorkflowController(_dbContext, _loggerMock.Object);
+        var clients = new Mock<IHttpClientFactory>();
+        clients.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        _controller = new WorkflowController(_dbContext, _loggerMock.Object, clients.Object);
     }
 
     [Fact]

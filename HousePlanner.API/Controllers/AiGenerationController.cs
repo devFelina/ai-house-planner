@@ -3,11 +3,12 @@ using HousePlanner.API.Data;
 using HousePlanner.API.Entities;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace HousePlanner.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/ai-generation")]
     public class AiGenerationController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -26,11 +27,11 @@ namespace HousePlanner.API.Controllers
             object payload;
             try 
             {
-                var client = _context.Users.FirstOrDefault() ?? new User { Id = Guid.NewGuid(), Email = "test@example.com", FullName = "Test User", RoleId = 1, PasswordHash = "dummyhash" };
-                if (_context.Users.FirstOrDefault() == null) {
-                    _context.Users.Add(client);
-                    await _context.SaveChangesAsync();
-                }
+                var client = request.ClientId.HasValue
+                    ? await _context.Users.FindAsync(request.ClientId.Value)
+                    : await _context.Users.OrderBy(u => u.CreatedAt).FirstOrDefaultAsync();
+                if (client is null)
+                    return Conflict(new { Message = "No client account exists for this submission." });
 
                 var submission = new LandSubmission
                 {
@@ -77,13 +78,14 @@ namespace HousePlanner.API.Controllers
                 return StatusCode(500, new { Message = "Database error while saving the submission.", Details = ex.InnerException?.Message ?? ex.Message });
             }
 
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            _agenticServiceClient.DefaultRequestHeaders.Clear();
-            _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
-
+            var options = new JsonSerializerOptions { 
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
+            var content = new StringContent(JsonSerializer.Serialize(payload, options), Encoding.UTF8, "application/json");
             try
             {
-                var response = await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/start", content);
+                var response = await _agenticServiceClient.PostAsync("/workflows/start", content);
                 if (!response.IsSuccessStatusCode)
                 {
                     // If the Python API returns a 4xx or 5xx, we handle it gracefully instead of a raw 500
@@ -106,7 +108,8 @@ namespace HousePlanner.API.Controllers
 
     public class AiGenerationRequest
     {
-        public decimal BudgetLkr { get; set; }
+        public Guid? ClientId { get; set; }
+        public decimal? BudgetLkr { get; set; }
         public decimal LandSizePerches { get; set; }
         public string? ManualTerrainType { get; set; }
         public PreferencesDto? Preferences { get; set; }
@@ -120,6 +123,26 @@ namespace HousePlanner.API.Controllers
         public int Floors { get; set; }
         public string? ArchitecturalStyle { get; set; }
         public string? LandUnit { get; set; }
+        public int? Bathrooms { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("open_plan")]
+        public bool? OpenPlan { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("master_ensuite")]
+        public bool? MasterEnsuite { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("separate_dining")]
+        public bool? SeparateDining { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("home_office")]
+        public bool? HomeOffice { get; set; }
+        public bool? Balcony { get; set; }
+        public bool? Veranda { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("utility_room")]
+        public bool? UtilityRoom { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("parking_required")]
+        public bool? ParkingRequired { get; set; }
+        public bool? Accessibility { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("space_priority")]
+        public string? SpacePriority { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("circulation_preference")]
+        public string? CirculationPreference { get; set; }
     }
 
     public class PlotConstraintsDto
@@ -127,5 +150,16 @@ namespace HousePlanner.API.Controllers
         public string? road_side { get; set; }
         public decimal? plot_width_ft { get; set; }
         public decimal? plot_length_ft { get; set; }
+        public string? north_direction { get; set; }
+        public string? entrance_side { get; set; }
+        public SetbacksDto? setbacks { get; set; }
+    }
+
+    public class SetbacksDto
+    {
+        public decimal? front { get; set; }
+        public decimal? rear { get; set; }
+        public decimal? left { get; set; }
+        public decimal? right { get; set; }
     }
 }

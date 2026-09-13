@@ -129,6 +129,7 @@ public class WorkflowController : ControllerBase
                     TemplateFamily: GetMetadata(root, "template_family")?.GetString(),
                     DesignSeed: GetMetadata(root, "design_seed")?.GetInt64(),
                     DesignScore: GetMetadata(root, "design_score")?.GetDecimal(),
+                    GeometryFingerprint: GetMetadata(root, "geometry_fingerprint")?.GetString(),
                     GroundFootprintSqft: GetMetadata(root, "ground_footprint_sqft")?.GetDecimal(),
                     Connections: GetMetadata(root, "connections"),
                     Entrances: GetMetadata(root, "entrances"),
@@ -244,7 +245,16 @@ public class WorkflowController : ControllerBase
 
         if (request.Decision == "request_revision")
         {
+            if (string.IsNullOrWhiteSpace(request.RevisionNotes))
+                return BadRequest(new { Message = "Revision notes are required." });
+            var current = workflow.HouseDesigns.OrderByDescending(d => d.Version).FirstOrDefault();
+            if (current is null) return Conflict(new { Message = "No design exists to revise." });
+            using var currentLayout = ParseLayout(current.LayoutJson);
+            var root = currentLayout.RootElement;
+            var currentSeed = GetMetadata(root, "design_seed")?.GetInt64() ?? 0;
+            var nextSeed = currentSeed + 1;
             workflow.Status = "running";
+            workflow.ApprovalStatus = "revision_requested";
             workflow.UpdatedAt = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync();
             
@@ -265,16 +275,23 @@ public class WorkflowController : ControllerBase
                     terrain_type = workflow.TerrainType,
                     slope_estimate = workflow.SlopeEstimate
                 },
-                previous_design = workflow.HouseDesigns.OrderByDescending(d => d.Version).FirstOrDefault()?.LayoutJson
+                previous_design = root.Clone(),
+                plot_constraints = GetMetadata(root, "plot_constraints"),
+                design_seed = nextSeed
             };
             
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             
             // POST to Python internal API to resume the graph
-            _agenticServiceClient.DefaultRequestHeaders.Clear();
-            _agenticServiceClient.DefaultRequestHeaders.Add("X-Internal-API-Key", "shared-internal-secret");
-            
-            await _agenticServiceClient.PostAsync("http://localhost:8001/workflows/resume", content);
+            var response = await _agenticServiceClient.PostAsync("/workflows/resume", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                workflow.Status = "awaiting_approval";
+                workflow.ApprovalStatus = "pending";
+                await _context.SaveChangesAsync();
+                return StatusCode(StatusCodes.Status502BadGateway,
+                    new { Message = "The design service could not start the revision." });
+            }
             
             return Ok(new { Message = "Revision started" });
         }

@@ -42,6 +42,10 @@ def design_node(state: WorkflowState) -> WorkflowState:
         previous_design = state.design_result
         revision_reason = state.validation_result.get("revision_reason", "Unknown validation failure")
         print(f"[Design Agent] Revision requested. Reason: {revision_reason}")
+    if state.user_revision_prompt:
+        previous_design = state.design_result
+        revision_reason = state.user_revision_prompt
+        print('[Design Agent] Human revision request received.')
 
     # Soft vision observations may inform concepts, never structural calculations.
     preferences = dict(preferences)
@@ -53,6 +57,7 @@ def design_node(state: WorkflowState) -> WorkflowState:
             land_size_perches=land_size, terrain_type=terrain_type,
             preferences=preferences, previous_design=previous_design,
             revision_reason=revision_reason, plot_constraints=plot_input, design_seed=seed,
+            budget_lkr=state.input_data.budget_lkr if state.input_data else None,
         )
         req, plot = prepare_inputs(land_size, terrain_type, preferences, plot_input, seed)
         validation = validate_geometry(design.rooms, req.bedrooms, req.floors, land_size,
@@ -71,6 +76,9 @@ def design_node(state: WorkflowState) -> WorkflowState:
             tool_called='layout_generation_tool', result=str(exc),
             created_at_utc=datetime.now(timezone.utc).isoformat()))
         _persist_failure(state)
+        with open("execution_log.json", "w") as f:
+            import json
+            f.write(json.dumps([e.model_dump() for e in state.execution_log], indent=2))
         return state
     state.design_result = design.model_dump()
     state.validation_result = validation.to_dict()
@@ -117,7 +125,7 @@ def _submit_design(state: WorkflowState) -> str:
                   f"id {result_data.get('designId', '?')}")
             return "success"
         else:
-            error_msg = f"api_failed: {response.status_code}"
+            error_msg = f"api_failed: {response.status_code} - {response.text}"
             print(f"[Design Agent] API submission failed: {error_msg}")
             return error_msg
     except Exception as e:
