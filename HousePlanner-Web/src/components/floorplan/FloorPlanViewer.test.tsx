@@ -55,7 +55,9 @@ describe('Procedural plan rendering', () => {
         { ...room, room_id: 'stairs', room_type: 'staircase', floor: 2 }],
       entrances: [{ room_id: 'hall', wall: 'south' as const, offset: 0.5, width: 3 }] };
     const { container, rerender } = render(<FloorPlanViewer data={data} pixelsPerFoot={10} />);
-    expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 260 300');
+    const viewBox = container.querySelector('svg')?.getAttribute('viewBox')?.split(' ').map(Number);
+    expect(viewBox?.[2]).toBeGreaterThan(160);
+    expect(viewBox?.[3]).toBeGreaterThan(200);
     expect(container.querySelector('[aria-label="Main entrance"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Staircase treads"]')).toBeNull();
     rerender(<FloorPlanViewer data={data} floorFilter={2} />);

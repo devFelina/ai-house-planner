@@ -69,8 +69,18 @@ export interface GenerateDesignRequest {
   landSizePerches: number;
   manualTerrainType?: string;
   designSeed?: number;
-  preferences: { bedrooms: number; floors: number; architecturalStyle?: string };
-  plotConstraints?: { road_side: string; plot_width_ft?: number; plot_length_ft?: number };
+  preferences: {
+    bedrooms: number; bathrooms: number; floors: number; architecturalStyle?: string;
+    openPlan?: boolean; masterEnsuite?: boolean; separateDining?: boolean;
+    homeOffice?: boolean; balcony?: boolean; veranda?: boolean; utilityRoom?: boolean;
+    parkingRequired?: boolean; accessibility?: boolean; spacePriority?: string;
+    circulationPreference?: 'space_efficient';
+  };
+  plotConstraints?: {
+    road_side: string; plot_width_ft?: number; plot_length_ft?: number;
+    north_direction?: string; entrance_side?: string;
+    setbacks?: { front?: number; rear?: number; left?: number; right?: number };
+  };
 }
 
 // ──────────────────────────────────────────────────
