@@ -23,6 +23,10 @@ def family_affinity(family: str, req: Requirements, plot: PlotConstraints) -> fl
         preferred.update(('SPLIT_ZONE', 'L_SHAPE'))
     if req.accessibility:
         preferred.add('CENTRAL_CORE')
+    if req.compact_priority:
+        preferred.update(('COMPACT_RECTANGLE', 'CENTRAL_CORE'))
+    if req.privacy_priority:
+        preferred.add('SPLIT_ZONE')
     if req.floors > 1:
         preferred.add('DUPLEX_STACKED')
     if not preferred:

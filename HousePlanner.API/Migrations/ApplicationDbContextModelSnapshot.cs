@@ -73,6 +73,10 @@ namespace HousePlanner.API.Migrations
                     b.HasIndex("WorkflowStateId", "IsCurrent")
                         .HasDatabaseName("IX_HouseDesigns_WorkflowState_IsCurrent");
 
+                    b.HasIndex("WorkflowStateId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("UX_HouseDesigns_WorkflowState_Version");
+
                     b.ToTable("HouseDesigns");
                 });
 

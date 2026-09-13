@@ -42,6 +42,10 @@ def design_node(state: WorkflowState) -> WorkflowState:
         previous_design = state.design_result
         revision_reason = state.validation_result.get("revision_reason", "Unknown validation failure")
         print(f"[Design Agent] Revision requested. Reason: {revision_reason}")
+    if state.user_revision_prompt:
+        previous_design = state.design_result
+        revision_reason = state.user_revision_prompt
+        print('[Design Agent] Human revision request received.')
 
     # Soft vision observations may inform concepts, never structural calculations.
     preferences = dict(preferences)

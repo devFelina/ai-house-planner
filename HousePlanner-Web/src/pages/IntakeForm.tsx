@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, Home, Map, DollarSign, Layers, CheckCircle2 } from 'lucide-react';
+import { workflowService } from '../services/workflowService';
 
 interface IntakeFormData {
   budget: string;
@@ -55,55 +56,33 @@ const IntakeForm: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Construct payload for Python Agentic Service
+      // Submit through the public gateway; Python remains an internal service.
       const parsedBudget = parseFloat(formData.budget);
       const payload: any = {
-        submission_id: crypto.randomUUID(),
-        land_size_perches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
-        manual_terrain_type: formData.terrainType,
+        landSizePerches: formData.landUnit === 'perches' ? parseFloat(formData.landSize) : (parseFloat(formData.landSize) / 272.25),
+        manualTerrainType: formData.terrainType,
         preferences: {
           bedrooms: parseInt(formData.bedrooms) || 3,
           floors: parseInt(formData.floors) || 1,
-          style: formData.architecturalStyle
+          architecturalStyle: formData.architecturalStyle
         }
       };
 
-      payload.plot_constraints = {
+      payload.plotConstraints = {
         road_side: formData.roadSide,
         ...(formData.plotWidth ? { plot_width_ft: Number(formData.plotWidth) } : {}),
         ...(formData.plotLength ? { plot_length_ft: Number(formData.plotLength) } : {}),
       };
       
-      payload.design_seed = Math.floor(Math.random() * 1000000);
+      payload.designSeed = crypto.getRandomValues(new Uint32Array(1))[0];
 
       if (!isNaN(parsedBudget)) {
-        payload.budget_lkr = parsedBudget;
+        payload.budgetLkr = parsedBudget;
       }
 
-      // Call ASP.NET API
-      const response = await fetch('http://localhost:5265/api/aigeneration/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          BudgetLkr: payload.budget_lkr,
-          LandSizePerches: payload.land_size_perches,
-          ManualTerrainType: payload.manual_terrain_type,
-          Preferences: payload.preferences,
-          PlotConstraints: payload.plot_constraints,
-          DesignSeed: payload.design_seed
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to connect to the backend server.');
-      }
-
-      const result = await response.json();
-      console.log('AI Coordinator Result:', result);
+      const result = await workflowService.startDesign(payload);
       
-      setWorkflowId(result.WorkflowId || result.workflowId);
+      setWorkflowId(result.workflowId);
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);

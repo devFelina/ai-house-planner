@@ -1,12 +1,10 @@
 import React from 'react';
-import { LogOut, Home, User, Box, Sparkles } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { LogOut, User, Box, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import useAuth from '../../features/auth/useAuth';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
   const handleLogout = () => {
     logout();
     window.location.href = '/';

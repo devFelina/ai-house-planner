@@ -7,6 +7,10 @@ def build_program(req: Requirements) -> SpatialProgram:
     def add(key: str, floor: int, zone: str, exterior: bool = False) -> None:
         rule = rule_for(key)
         target = rule.target_area
+        if key == 'living_room':
+            target *= req.living_area_scale
+        if key == 'kitchen':
+            target *= req.kitchen_area_scale
         if key == 'living_room' and req.open_plan:
             target += 50
         if key == 'bedroom_1' and req.master_bedroom:

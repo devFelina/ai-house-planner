@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional,List,Literal,Dict,Any
 from uuid import UUID
 
@@ -31,7 +31,7 @@ class WorkflowState(BaseModel):
 
     approval_status:Literal["not_requested","pending","approved","rejected","revision_requested"]="not_requested"
     retry_count:int=0
-    execution_log:List[ExecutionLogEntry]=[]
+    execution_log:List[ExecutionLogEntry]=Field(default_factory=list)
 
     #Internal routing data
     input_data:Optional[CoordinatorInput]=None
@@ -39,4 +39,3 @@ class WorkflowState(BaseModel):
 
     #To store user chat feedback for revisions
     user_revision_prompt:Optional[str]=None
-    

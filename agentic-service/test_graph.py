@@ -3,7 +3,7 @@ from uuid import uuid4
 from app.schemas.workflow_state import WorkflowState, CoordinatorInput
 from app.workflows.house_planning_graph import app_graph
 
-async def test():
+async def run_graph_demo():
     initial_state = WorkflowState(
         workflow_id=uuid4(),
         status="running",
@@ -23,4 +23,4 @@ async def test():
         print("Graph failed:", e)
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    asyncio.run(run_graph_demo())

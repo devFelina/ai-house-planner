@@ -24,6 +24,10 @@ class Requirements(BaseModel):
     balcony: bool = False
     garden_priority: bool = False
     accessibility: bool = False
+    compact_priority: bool = False
+    privacy_priority: bool = False
+    living_area_scale: float = Field(1.0, ge=0.8, le=1.3)
+    kitchen_area_scale: float = Field(1.0, ge=0.8, le=1.3)
     design_seed: Optional[int] = None
 
 

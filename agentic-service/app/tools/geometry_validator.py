@@ -16,6 +16,7 @@ from app.design.room_rules import rule_for, room_kind, CIRCULATION_TYPES, MIN_CO
 from app.schemas.design_result import DesignResult
 from app.schemas.design_result import RoomLayout
 from app.tools.land_utils import max_buildable_area
+from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
 
 
 class GeometryValidationResult:
@@ -194,6 +195,13 @@ def _validate_spatial_rules(result: GeometryValidationResult, rooms: List[RoomLa
         result.fail('area_mismatch', 'Reported design totals do not match room geometry.')
     if design.floor_count != expected_floors:
         result.fail('floor_count', 'Design floor_count differs from the request.')
+    if plot:
+        expected_foundation = TERRAIN_FOUNDATION_MAP.get(plot.terrain_type)
+        if expected_foundation and design.foundation_type != expected_foundation:
+            result.fail(
+                'terrain_foundation',
+                f"Terrain '{plot.terrain_type}' requires foundation type '{expected_foundation}'."
+            )
     if plot and ground > plot.maximum_ground_footprint+0.01:
         result.fail('ground_footprint', 'Ground footprint exceeds the plot limit.')
     by_id = {r.room_id: r for r in rooms}

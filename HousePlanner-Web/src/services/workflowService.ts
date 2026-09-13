@@ -38,13 +38,18 @@ export interface HouseDesignSummaryDto {
   templateFamily?: string | null;
   designSeed?: number | null;
   designScore?: number | null;
+  geometryFingerprint?: string | null;
   groundFootprintSqft?: number | null;
   entrances?: { room_id: string; wall: OpeningDto['wall']; offset: number; width: number }[];
   plotConstraints?: { dimensions_estimated?: boolean };
   candidateSummary?: { 
     notes?: string[],
     valid_count?: number,
-    rejected_count?: number
+    rejected_count?: number,
+    generated_count?: number,
+    unique_valid_count?: number,
+    generation_mode?: string,
+    selection_method?: string
   };
 
 }
@@ -59,11 +64,24 @@ export interface WorkflowStatusResponseDto {
   approvalStatus: string;
 }
 
+export interface GenerateDesignRequest {
+  budgetLkr?: number;
+  landSizePerches: number;
+  manualTerrainType?: string;
+  designSeed?: number;
+  preferences: { bedrooms: number; floors: number; architecturalStyle?: string };
+  plotConstraints?: { road_side: string; plot_width_ft?: number; plot_length_ft?: number };
+}
+
 // ──────────────────────────────────────────────────
 // API calls
 // ──────────────────────────────────────────────────
 
 export const workflowService = {
+  startDesign: async (request: GenerateDesignRequest): Promise<{ workflowId: string }> => {
+    const response = await apiClient.post('/ai-generation/generate', request);
+    return response.data;
+  },
   getWorkflowStatus: async (id: string): Promise<WorkflowStatusResponseDto> => {
     const response = await apiClient.get<WorkflowStatusResponseDto>(`/workflows/${id}/status`);
     return response.data;

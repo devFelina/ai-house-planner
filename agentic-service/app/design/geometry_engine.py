@@ -1,8 +1,4 @@
-"""Parametric room banks and circulation branches, in architectural feet.
-
-No geometry comes from the language model. Each topology specifies how room
-banks attach to circulation; dimensions are derived from the spatial program.
-"""
+"""Parametric room banks used only by the disclosed offline demo fallback."""
 from math import sqrt
 from app.design.adjacency import build_connections, exterior_segments, road_access_clear
 from app.design.diversity import candidate_rng, stable_id, stable_seed

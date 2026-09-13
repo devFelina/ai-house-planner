@@ -25,10 +25,17 @@ def rendering_node(state: WorkflowState) -> WorkflowState:
     style = state.input_data.preferences.get('architecturalStyle', 'Modern Design')
     ax.set_title(f"Architectural Floor Plan - {style}", fontsize=16, pad=20)
     
-    rooms = state.design_result["rooms"]
+    rooms = state.design_result.get("rooms", [])
+
+    # Calculate offset to place floors side-by-side
+    max_x = max([r.get("x", 0) + r.get("width", 10) for r in rooms] + [0])
     
     for room in rooms:
-        x, y = room.get("x", 0), room.get("y", 0)
+        floor = room.get("floor", 1)
+        x_offset = (floor - 1) * (max_x + 10) # 10 feet gap between floors
+
+        x = room.get("x", 0) + x_offset
+        y = room.get("y", 0)
         w, l = room.get("width", 10), room.get("length", 10)
         room_type = room.get("room_type", "Room").replace('_', ' ').title()
         
@@ -36,6 +43,10 @@ def rendering_node(state: WorkflowState) -> WorkflowState:
         rect = patches.Rectangle((x, y), w, l, linewidth=2, edgecolor='black', facecolor='#f0f0f0', alpha=0.9)
         ax.add_patch(rect)
         
+        # Floor label below the first room if it's new
+        if room.get("x", 0) == min([r.get("x", 0) for r in rooms if r.get("floor") == floor] + [0]) and room.get("y", 0) == min([r.get("y", 0) for r in rooms if r.get("floor") == floor] + [0]):
+             ax.text(x_offset + max_x/2, -5, f"Floor {floor}", horizontalalignment='center', verticalalignment='center', fontsize=12, weight='bold')
+
         # Room Label
         ax.text(x + w/2, y + l/2, room_type, 
                 horizontalalignment='center', verticalalignment='center', fontsize=10, weight='bold')

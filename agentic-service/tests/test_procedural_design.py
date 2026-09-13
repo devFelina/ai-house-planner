@@ -108,6 +108,15 @@ def test_terrain_changes_conceptual_topology():
     assert hill.foundation_type == 'stepped'
 
 
+def test_validator_rejects_terrain_foundation_mismatch():
+    req, plot = make(terrain='coastal')
+    result = select_best(req, plot)
+    result.foundation_type = 'slab'
+    checked = validate(result, req, plot)
+    assert not checked.passed
+    assert 'terrain_foundation' in checked.failed_rules
+
+
 @pytest.mark.parametrize('preferences', [dict(open_plan=True), dict(dining_required=True),
     dict(master_bedroom=True, attached_bathroom=True), dict(home_office=True),
     dict(accessibility=True), dict(floors=2, balcony=True), dict(bathrooms=3)])

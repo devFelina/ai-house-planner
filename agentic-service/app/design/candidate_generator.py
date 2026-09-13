@@ -1,5 +1,6 @@
 from typing import Optional, Union
-from app.design.diversity import stable_seed
+import random
+from app.design.diversity import geometry_fingerprint, stable_seed
 from app.design.geometry_engine import generate_geometry
 from app.design.models import Requirements, ConceptAdvice
 from app.design.plot_constraints import PlotConstraints
@@ -8,16 +9,6 @@ from app.design.spatial_program import build_program
 from app.design.topology_registry import eligible_topologies
 from app.schemas.design_result import DesignResult
 from app.tools.geometry_validator import validate_geometry
-
-
-def geometry_fingerprint(design: DesignResult) -> str:
-    import hashlib
-    # Normalize and sort rooms
-    normalized = []
-    for r in design.rooms:
-        normalized.append(f"{r.room_type}:{r.floor}:{r.x:.1f}:{r.y:.1f}:{r.width:.1f}:{r.length:.1f}")
-    normalized.sort()
-    return hashlib.sha256(",".join(normalized).encode('utf-8')).hexdigest()
 
 
 class GenerationFailure(ValueError):
@@ -80,14 +71,14 @@ def generate_candidates(req: Requirements, plot: PlotConstraints,
     return valid, rejected
 
 
-def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[ConceptAdvice] = None) -> DesignResult:
-    import random
+def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[ConceptAdvice] = None,
+                excluded_fingerprints: Optional[set[str]] = None) -> DesignResult:
     candidates, rejected = generate_candidates(req, plot, advice)
     if not candidates:
         raise GenerationFailure('No valid conceptual layout fits the plot, room program and area limits.', rejected)
     
     best_score = max(c.design_score for c in candidates)
-    tolerance = max(10.0, abs(best_score) * 0.25)
+    tolerance = max(5.0, abs(best_score) * 0.05)
     
     top_band = [c for c in candidates if c.design_score >= best_score - tolerance]
     
@@ -97,9 +88,13 @@ def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[Conce
         fp = geometry_fingerprint(c)
         if fp not in seen_fingerprints:
             seen_fingerprints.add(fp)
-            c.candidate_summary = c.candidate_summary or {}
-            c.candidate_summary['geometry_fingerprint'] = fp
+            c.geometry_fingerprint = fp
             unique_candidates.append(c)
+
+    alternatives = [c for c in unique_candidates
+                    if c.geometry_fingerprint not in (excluded_fingerprints or set())]
+    if alternatives:
+        unique_candidates = alternatives
             
     best_per_family = {}
     for c in unique_candidates:
@@ -111,16 +106,23 @@ def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[Conce
             
     diverse_candidates = list(best_per_family.values())
     
-    seed = req.design_seed if req.design_seed is not None else random.randint(1, 1000000)
+    seed = req.design_seed if req.design_seed is not None else stable_seed(
+        {'requirements': req.model_dump(), 'plot': plot.model_dump()}
+    )
     rng = random.Random(seed)
     
     best = rng.choice(diverse_candidates)
     
     best.candidate_summary.update({
         'valid_count': len(candidates), 'rejected_count': len(rejected),
+        'generated_count': len(candidates) + len(rejected),
+        'duplicate_count': len(top_band) - len(seen_fingerprints),
+        'top_band_count': len(top_band),
         'diversity_pool': len(diverse_candidates),
         'selected_seed': seed,
+        'selection_method': 'seeded_top_quality_band',
         'candidates': [{'family': c.template_family, 'design_id': c.design_id, 'score': c.design_score,
+                        'geometry_fingerprint': geometry_fingerprint(c),
                         'score_breakdown': c.candidate_summary['score_breakdown']} for c in candidates],
         'rejected': rejected,
         'notes': (best.program or {}).get('notes', []) +

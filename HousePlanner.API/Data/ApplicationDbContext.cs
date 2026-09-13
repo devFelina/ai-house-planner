@@ -28,6 +28,9 @@ namespace HousePlanner.API.Data
             {
                 entity.HasIndex(e => e.WorkflowStateId).HasDatabaseName("IX_HouseDesigns_WorkflowStateId");
                 entity.HasIndex(e => new { e.WorkflowStateId, e.IsCurrent }).HasDatabaseName("IX_HouseDesigns_WorkflowState_IsCurrent");
+                entity.HasIndex(e => new { e.WorkflowStateId, e.Version })
+                    .IsUnique()
+                    .HasDatabaseName("UX_HouseDesigns_WorkflowState_Version");
                 try 
                 {
                     entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");

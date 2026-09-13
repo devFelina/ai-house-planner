@@ -27,6 +27,7 @@ public record HouseDesignSummaryDto(
     string? TemplateFamily = null,
     long? DesignSeed = null,
     decimal? DesignScore = null,
+    string? GeometryFingerprint = null,
     decimal? GroundFootprintSqft = null,
     System.Text.Json.JsonElement? Connections = null,
     System.Text.Json.JsonElement? Entrances = null,
