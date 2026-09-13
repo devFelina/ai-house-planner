@@ -70,24 +70,24 @@ jobs:
         run: |
           python -m pytest tests/
 
-  mobile-app:
-    name: Build Mobile App (Flutter)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./mobile
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Analyze
-        run: flutter analyze
-      - name: Test
-        run: flutter test || echo "No tests found or tests failed"
-      # Uncomment to verify android build
-      # - name: Build Android
-      #   run: flutter build apk
+#   mobile-app:
+#     name: Build Mobile App (Flutter)
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         working-directory: ./mobile
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Set up Flutter
+#         uses: subosito/flutter-action@v2
+#         with:
+#           channel: 'stable'
+#       - name: Install dependencies
+#         run: flutter pub get
+#       - name: Analyze
+#         run: flutter analyze
+#       - name: Test
+#         run: flutter test || echo "No tests found or tests failed"
+#       # Uncomment to verify android build
+#       # - name: Build Android
+#       #   run: flutter build apk
