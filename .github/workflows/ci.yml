@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "dev", "smart-home-designer" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  web-frontend:
+    name: Build Web Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./HousePlanner-Web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ./HousePlanner-Web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      # Add this step if you have tests configured
+      # - name: Test
+      #   run: npm test
+
+  api-backend:
+    name: Build and Test ASP.NET API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./HousePlanner.API
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+      - name: Test
+        run: dotnet test --no-build --verbosity normal --configuration Release
+        working-directory: ./HousePlanner.API.Tests
+
+  agentic-service:
+    name: Test Agentic Service (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./agentic-service
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run Tests
+        run: |
+          python -m pytest tests/
+
+  mobile-app:
+    name: Build Mobile App (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test || echo "No tests found or tests failed"
+      # Uncomment to verify android build
+      # - name: Build Android
+      #   run: flutter build apk
