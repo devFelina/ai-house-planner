@@ -85,9 +85,9 @@ export const WorkflowReviewPage: React.FC = () => {
   if (workflow?.status === 'failed') {
     return <div role="alert" className="p-8 text-center">
       <h2>Design generation could not complete</h2>
-      <p>{workflow.terrainType === 'unknown'
+      <p>{workflow.failureReason || (workflow.terrainType === 'unknown'
         ? 'Provide a manual terrain classification and submit again.'
-        : 'No valid layout was saved. Review plot dimensions and room requirements, then submit again.'}</p>
+        : 'No valid layout was saved. Review plot dimensions and room requirements, then submit again.')}</p>
     </div>;
   }
 

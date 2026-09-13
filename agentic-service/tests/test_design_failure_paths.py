@@ -4,7 +4,7 @@ import pytest
 from app.tools.layout_generation_tool import generate_layout
 from app.design.candidate_generator import GenerationFailure
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState
-from app.agents.design_agent import design_node
+from app.agents.design_agent import design_node, _safe_failure_reason
 from app.workflows.house_planning_graph import app_graph
 
 
@@ -117,3 +117,11 @@ def test_node_revalidates_before_persistence():
 def test_unknown_terrain_needs_manual_input():
     with pytest.raises(GenerationFailure, match='Terrain is unknown'):
         generate_layout(20, 'unknown', {'floors':1,'design_seed':1})
+
+
+def test_safe_failure_reason_exposes_validation_without_traceback():
+    failed = state()
+    failed.validation_result = {
+        'candidate_failures': [{'failures': ['Circulation area is 18.0%.', 'Invalid entrance.']}]
+    }
+    assert _safe_failure_reason(failed) == 'Circulation area is 18.0%. Invalid entrance.'

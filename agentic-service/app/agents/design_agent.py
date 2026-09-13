@@ -138,10 +138,23 @@ def _persist_failure(state: WorkflowState) -> None:
     try:
         response = requests.patch(
             f'{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/status',
-            json={'status': 'failed'}, headers={'X-Internal-API-Key': INTERNAL_API_KEY},
+            json={'status': 'failed', 'reason': _safe_failure_reason(state)},
+            headers={'X-Internal-API-Key': INTERNAL_API_KEY},
             timeout=5, verify=False)
         response.raise_for_status()
     except requests.RequestException as exc:
         state.execution_log.append(ExecutionLogEntry(
             agent_name='DesignAgent', action='Could not persist failed workflow status',
             result=type(exc).__name__, created_at_utc=datetime.now(timezone.utc).isoformat()))
+
+
+def _safe_failure_reason(state: WorkflowState) -> str:
+    """Return actionable validation text without stack traces or credentials."""
+    validation = state.validation_result or {}
+    details = validation.get('candidate_failures') or []
+    messages = []
+    for item in details[-3:]:
+        messages.extend(item.get('failures', [])[:2])
+    if not messages:
+        messages = validation.get('failures', ['Design generation failed.'])
+    return ' '.join(str(message) for message in messages)[:1000]

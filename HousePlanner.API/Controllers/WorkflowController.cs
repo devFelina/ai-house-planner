@@ -44,6 +44,7 @@ public class WorkflowController : ControllerBase
                     w.TerrainType,
                     w.SlopeEstimate,
                     w.ApprovalStatus,
+                    w.FailureReason,
                     // Pick the current (or latest) design version
                     LatestDesign = w.HouseDesigns
                         .OrderByDescending(d => d.IsCurrent)
@@ -145,7 +146,8 @@ public class WorkflowController : ControllerBase
                 SlopeEstimate: workflow.SlopeEstimate,
                 Design: designDto,
                 Cost: null, // CostSummary is populated when Component C adds CostEstimates
-                ApprovalStatus: workflow.ApprovalStatus
+                ApprovalStatus: workflow.ApprovalStatus,
+                FailureReason: workflow.FailureReason
             );
 
             return Ok(response);
