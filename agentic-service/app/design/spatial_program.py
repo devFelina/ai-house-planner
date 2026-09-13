@@ -15,6 +15,10 @@ def build_program(req: Requirements) -> SpatialProgram:
             target += 50
         if key == 'bedroom_1' and req.master_bedroom:
             target += 40
+        if key.startswith('bedroom') and req.space_priority == 'larger_bedrooms':
+            target *= 1.2
+        if key == 'living_room' and req.space_priority == 'spacious_living':
+            target *= 1.2
         rooms.append(RoomSpec(id=key, room_type=key, floor=floor, zone=zone,
                               min_width=rule.min_width, min_length=rule.min_length,
                               target_area=target, requires_exterior_wall=exterior))
@@ -35,6 +39,10 @@ def build_program(req: Requirements) -> SpatialProgram:
         add('bathroom_attached', master.floor, 'service')
     if req.home_office:
         add('home_office', 1, 'private', True)
+    if req.veranda:
+        add('veranda', 1, 'public', True)
+    if req.utility_room:
+        add('utility', 1, 'service', True)
     if req.balcony and req.floors > 1:
         add('balcony', req.floors, 'public', True)
     for floor in range(2, req.floors+1):
@@ -46,7 +54,16 @@ def build_program(req: Requirements) -> SpatialProgram:
     adjacency += [(r.id, 'bathroom_1', 'preferred') for r in rooms if r.room_type.startswith('bedroom')]
     if req.attached_bathroom:
         adjacency.append(('bedroom_1', 'bathroom_attached', 'required'))
-    access = [(f'circulation_{r.floor}', r.id) for r in rooms]
+    for bathroom in [r for r in rooms if r.room_type.startswith('bathroom')]:
+        adjacency.append(('kitchen', bathroom.id, 'preferred'))
+        adjacency.append(('dining', bathroom.id, 'discouraged'))
+    for bedroom in [r for r in rooms if r.room_type.startswith('bedroom')]:
+        adjacency.append(('kitchen', bedroom.id, 'discouraged'))
+    # This graph expresses relationships, not a demand for a dedicated hallway
+    # to every room. Public rooms may provide circulation to a private lobby.
+    access = [('entrance', 'living_room'), ('living_room', 'public_circulation')]
+    access += [('private_circulation', r.id) for r in rooms
+               if r.zone == 'private' or r.room_type.startswith('bathroom')]
     notes = []
     if req.balcony and req.floors == 1:
         notes.append('Balcony requires an upper floor; not included in this single-floor program.')
@@ -54,6 +71,8 @@ def build_program(req: Requirements) -> SpatialProgram:
         notes.append('An 18 ft front strip is reserved for conceptual parking/access outside the building.')
     if req.accessibility and req.floors > 1:
         notes.append('Ground-floor bedroom and wider circulation provided; upper floors remain stair-accessed.')
+    if req.circulation_preference == 'space_efficient':
+        notes.append('Prefer short shared circulation and a compact private lobby over a full-length hallway.')
     return SpatialProgram(rooms=rooms, adjacency_preferences=adjacency,
                           separation_preferences=[('living_room', 'bedroom_1')],
                           access_graph=access, notes=notes)

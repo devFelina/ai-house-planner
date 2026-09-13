@@ -246,7 +246,7 @@ def _validate_spatial_rules(result: GeometryValidationResult, rooms: List[RoomLa
         if not any(d.wall == entrance.wall and abs(d.offset-entrance.offset) < 0.001 and d.width >= entrance.width for d in r.doors):
             result.fail('entrance', 'Entrance metadata must match a rendered door.')
             continue
-        if plot and (entrance.wall != plot.road_side or not road_access_clear(r, rooms, entrance.wall, entrance.offset, entrance.width)):
+        if plot and (entrance.wall != plot.effective_entrance_side or not road_access_clear(r, rooms, entrance.wall, entrance.offset, entrance.width)):
             result.fail('entrance_access', 'Entrance must have a clear access strip toward the road.')
             continue
         valid_entrances.append(r.room_id)
@@ -263,6 +263,13 @@ def _validate_spatial_rules(result: GeometryValidationResult, rooms: List[RoomLa
             blocked -= {b.room_id for b in rooms if b.room_type == 'bedroom_1'}
         if not any(r.room_id in reachable(graph, key, blocked) for key in valid_entrances):
             result.fail('privacy_access', f'{r.name} requires passage through an unrelated private room.')
+    for room in rooms:
+        exterior = exterior_segments(room, rooms)
+        for window in room.windows:
+            if not any(wall == window.wall and lo <= window.offset + 0.001 and
+                       hi >= window.offset + window.width - 0.001
+                       for wall, lo, hi in exterior):
+                result.fail('window_exterior', f'{room.name} has a window on an internal or obstructed wall.')
     for a, b, strength in (design.program or {}).get('adjacency_preferences', []):
         if strength != 'required':
             continue

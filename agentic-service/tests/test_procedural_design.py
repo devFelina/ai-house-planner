@@ -4,6 +4,9 @@ from app.design.models import Requirements
 from app.design.plot_constraints import PlotConstraints
 from app.design.candidate_generator import generate_candidates, select_best, GenerationFailure
 from app.tools.geometry_validator import validate_geometry
+from app.design.adjacency import shared_wall
+from app.schemas.design_result import Opening
+from app.design.quality_metrics import calculate_quality_metrics
 
 
 def make(terrain='flat', **preferences):
@@ -115,6 +118,32 @@ def test_validator_rejects_terrain_foundation_mismatch():
     checked = validate(result, req, plot)
     assert not checked.passed
     assert 'terrain_foundation' in checked.failed_rules
+
+
+def test_quality_metrics_report_circulation_and_land_efficiency():
+    req, plot = make()
+    result = select_best(req, plot)
+    metrics = calculate_quality_metrics(result)
+    assert metrics['usable_room_area'] + metrics['circulation_area'] == pytest.approx(
+        metrics['actual_room_footprint_area'], abs=0.02)
+    assert metrics['circulation_ratio'] == pytest.approx(
+        metrics['circulation_area'] / metrics['actual_room_footprint_area'], abs=0.001)
+    assert 0 < metrics['compactness_ratio'] <= 1
+    assert metrics['unused_internal_void_area'] >= 0
+
+
+def test_window_on_internal_shared_wall_fails_validation():
+    req, plot = make()
+    result = select_best(req, plot)
+    pair = next((a, b, shared_wall(a, b)) for i, a in enumerate(result.rooms)
+                for b in result.rooms[i + 1:] if shared_wall(a, b))
+    room, _, wall = pair
+    side, lo, hi = wall
+    origin = room.x if side in ('north', 'south') else room.y
+    room.windows.append(Opening(wall=side, offset=(lo + hi - 3) / 2 - origin, width=3))
+    checked = validate(result, req, plot)
+    assert not checked.passed
+    assert 'window_exterior' in checked.failed_rules
 
 
 @pytest.mark.parametrize('preferences', [dict(open_plan=True), dict(dining_required=True),

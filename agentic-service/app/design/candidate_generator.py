@@ -1,5 +1,4 @@
 from typing import Optional, Union
-import random
 from app.design.diversity import geometry_fingerprint, stable_seed
 from app.design.geometry_engine import generate_geometry
 from app.design.models import Requirements, ConceptAdvice
@@ -109,9 +108,9 @@ def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[Conce
     seed = req.design_seed if req.design_seed is not None else stable_seed(
         {'requirements': req.model_dump(), 'plot': plot.model_dump()}
     )
-    rng = random.Random(seed)
-    
-    best = rng.choice(diverse_candidates)
+    best = max(diverse_candidates, key=lambda candidate: (
+        candidate.design_score, candidate.geometry_fingerprint
+    ))
     
     best.candidate_summary.update({
         'valid_count': len(candidates), 'rejected_count': len(rejected),
@@ -120,7 +119,7 @@ def select_best(req: Requirements, plot: PlotConstraints, advice: Optional[Conce
         'top_band_count': len(top_band),
         'diversity_pool': len(diverse_candidates),
         'selected_seed': seed,
-        'selection_method': 'seeded_top_quality_band',
+        'selection_method': 'highest_scoring_valid_candidate',
         'candidates': [{'family': c.template_family, 'design_id': c.design_id, 'score': c.design_score,
                         'geometry_fingerprint': geometry_fingerprint(c),
                         'score_breakdown': c.candidate_summary['score_breakdown']} for c in candidates],

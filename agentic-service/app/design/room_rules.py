@@ -18,7 +18,7 @@ ROOM_RULES = {
     'dining': RoomRule(8, 8, 110),
     'home_office': RoomRule(8, 8, 90),
     'family_lounge': RoomRule(8, 8, 100),
-    'hallway': RoomRule(4, 4, 40, 16),
+    'hallway': RoomRule(3.5, 4, 32, 8),
     'entrance': RoomRule(4, 4, 24, 16),
     'foyer': RoomRule(4, 4, 32, 16),
     'staircase': RoomRule(6, 10, 60),

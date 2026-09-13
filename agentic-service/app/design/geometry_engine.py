@@ -129,13 +129,13 @@ def generate_geometry(program: SpatialProgram, req: Requirements, plot: PlotCons
         length = max(r.y+r.length for r in rotated)
         if width <= plot.buildable_width+0.001 and length <= plot.buildable_length+0.001:
             entries = [(r, wall, lo, hi) for r in rotated if r.floor == 1 and room_kind(r.room_type) in ('hallway', 'foyer')
-                       for wall, lo, hi in exterior_segments(r, rotated) if wall == plot.road_side and road_access_clear(r, rotated, wall, (lo+hi-3)/2)]
+                       for wall, lo, hi in exterior_segments(r, rotated) if wall == plot.effective_entrance_side and road_access_clear(r, rotated, wall, (lo+hi-3)/2)]
             if entries:
                 # Select the circulation opening closest to the road edge.
                 def road_distance(entry: tuple) -> float:
                     r = entry[0]
                     return {'south': r.y, 'north': length-r.y-r.length,
-                            'west': r.x, 'east': width-r.x-r.width}[plot.road_side]
+                            'west': r.x, 'east': width-r.x-r.width}[plot.effective_entrance_side]
                 entry = min(entries, key=road_distance)
                 slope_penalty = width if plot.terrain_type == 'hillside' and plot.slope_direction in ('north', 'south') else 0
                 options.append((road_distance(entry)+slope_penalty, turns, rotated, entry))

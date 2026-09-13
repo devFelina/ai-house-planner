@@ -22,8 +22,13 @@ class Requirements(BaseModel):
     home_office: bool = False
     parking: bool = False
     balcony: bool = False
+    veranda: bool = False
+    utility_room: bool = False
     garden_priority: bool = False
     accessibility: bool = False
+    space_priority: Literal['compact_cost_efficient', 'balanced', 'spacious_living',
+                            'larger_bedrooms', 'outdoor_garden'] = 'balanced'
+    circulation_preference: Literal['space_efficient', 'balanced'] = 'space_efficient'
     compact_priority: bool = False
     privacy_priority: bool = False
     living_area_scale: float = Field(1.0, ge=0.8, le=1.3)
@@ -46,7 +51,7 @@ class RoomSpec(BaseModel):
 
 class SpatialProgram(BaseModel):
     rooms: list[RoomSpec]
-    adjacency_preferences: list[tuple[str, str, Literal['required', 'preferred']]]
+    adjacency_preferences: list[tuple[str, str, Literal['required', 'preferred', 'discouraged']]]
     separation_preferences: list[tuple[str, str]]
     access_graph: list[tuple[str, str]]
     notes: list[str] = Field(default_factory=list)

@@ -19,7 +19,8 @@ class PlotConstraints(BaseModel):
     plot_width_ft: Optional[float] = Field(None, gt=0)
     plot_length_ft: Optional[float] = Field(None, gt=0)
     road_side: Direction = 'south'
-    north_direction: Literal['top', 'bottom', 'left', 'right'] = 'top'
+    north_direction: Literal['top', 'bottom', 'left', 'right', 'north', 'east', 'south', 'west'] = 'top'
+    entrance_side: Optional[Direction] = None
     terrain_type: Terrain = 'flat'
     slope_direction: Optional[Direction] = None
     setbacks: Setbacks = Field(default_factory=Setbacks)
@@ -53,6 +54,11 @@ class PlotConstraints(BaseModel):
         values = [max(self.setbacks.front, 18) if self.parking_reserved else self.setbacks.front,
                   self.setbacks.rear, self.setbacks.left, self.setbacks.right]
         return dict(zip(order, values))
+
+    @computed_field
+    @property
+    def effective_entrance_side(self) -> Direction:
+        return self.entrance_side or self.road_side
 
     @computed_field
     @property

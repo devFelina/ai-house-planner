@@ -6,6 +6,7 @@ using HousePlanner.API.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace HousePlanner.API.Tests.Controllers;
 
@@ -13,6 +14,13 @@ public class ProceduralContractTests
 {
     private static ApplicationDbContext Database() => new(new DbContextOptionsBuilder<ApplicationDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    private static WorkflowController Controller(ApplicationDbContext db)
+    {
+        var clients = new Mock<IHttpClientFactory>();
+        clients.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        return new WorkflowController(db, NullLogger<WorkflowController>.Instance, clients.Object);
+    }
 
     [Fact]
     public async Task RepeatedRoomTypesKeepTheirOwnOpeningsAndMetadata()
@@ -45,7 +53,7 @@ public class ProceduralContractTests
             } }
         });
         await db.SaveChangesAsync();
-        var controller = new WorkflowController(db, NullLogger<WorkflowController>.Instance);
+        var controller = Controller(db);
         var response = await controller.GetWorkflowStatus(workflowId);
         var dto = Assert.IsType<WorkflowStatusResponseDto>(Assert.IsType<OkObjectResult>(response.Result).Value);
         Assert.Equal("DUPLEX_STACKED", dto.Design!.TemplateFamily);
@@ -71,5 +79,30 @@ public class ProceduralContractTests
         Assert.IsType<OkObjectResult>(await controller.UpdateGenerationStatus(id, json.RootElement));
         Assert.Equal("failed", (await db.WorkflowStates.FindAsync(id))!.Status);
         Assert.Empty(db.HouseDesigns);
+    }
+
+    [Fact]
+    public void ExpandedIntakeSerializesPythonCompatibleFieldNames()
+    {
+        var preferences = new PreferencesDto {
+            Bedrooms = 3, Bathrooms = 2, Floors = 1, OpenPlan = true,
+            MasterEnsuite = true, SeparateDining = false, UtilityRoom = true,
+            ParkingRequired = true, SpacePriority = "balanced",
+            CirculationPreference = "space_efficient"
+        };
+        var plot = new PlotConstraintsDto {
+            road_side = "south", north_direction = "east", entrance_side = "west",
+            setbacks = new SetbacksDto { front = 10, rear = 6, left = 5, right = 5 }
+        };
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        using var preferencesJson = JsonDocument.Parse(JsonSerializer.Serialize(preferences, options));
+        using var plotJson = JsonDocument.Parse(JsonSerializer.Serialize(plot, options));
+        Assert.True(preferencesJson.RootElement.GetProperty("open_plan").GetBoolean());
+        Assert.True(preferencesJson.RootElement.GetProperty("master_ensuite").GetBoolean());
+        Assert.True(preferencesJson.RootElement.GetProperty("utility_room").GetBoolean());
+        Assert.Equal("space_efficient", preferencesJson.RootElement.GetProperty("circulation_preference").GetString());
+        Assert.Equal("east", plotJson.RootElement.GetProperty("north_direction").GetString());
+        Assert.Equal(6, plotJson.RootElement.GetProperty("setbacks").GetProperty("rear").GetDecimal());
     }
 }
