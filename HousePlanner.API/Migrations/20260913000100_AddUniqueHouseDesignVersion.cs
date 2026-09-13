@@ -1,9 +1,13 @@
+using HousePlanner.API.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace HousePlanner.API.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260913000100_AddUniqueHouseDesignVersion")]
     public partial class AddUniqueHouseDesignVersion : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

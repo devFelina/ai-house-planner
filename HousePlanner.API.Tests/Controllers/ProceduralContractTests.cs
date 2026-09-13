@@ -75,9 +75,10 @@ public class ProceduralContractTests
         db.WorkflowStates.Add(new WorkflowState { Id = id, LandSubmissionId = Guid.NewGuid() });
         await db.SaveChangesAsync();
         var controller = new InternalWorkflowController(db, NullLogger<InternalWorkflowController>.Instance);
-        using var json = JsonDocument.Parse("{\"status\":\"failed\"}");
+        using var json = JsonDocument.Parse("{\"status\":\"failed\",\"reason\":\"No valid entrance was found.\"}");
         Assert.IsType<OkObjectResult>(await controller.UpdateGenerationStatus(id, json.RootElement));
         Assert.Equal("failed", (await db.WorkflowStates.FindAsync(id))!.Status);
+        Assert.Equal("No valid entrance was found.", (await db.WorkflowStates.FindAsync(id))!.FailureReason);
         Assert.Empty(db.HouseDesigns);
     }
 

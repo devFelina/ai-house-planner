@@ -111,6 +111,7 @@ public class InternalWorkflowController : ControllerBase
 
             // Update workflow status and terrain
             workflow.Status = "design_generated";
+            workflow.FailureReason = null;
             if (terrainType != null)
                 workflow.TerrainType ??= terrainType;
             workflow.UpdatedAt = DateTimeOffset.UtcNow;
@@ -140,6 +141,10 @@ public class InternalWorkflowController : ControllerBase
         if (workflow is null) return NotFound(new { message = $"Unknown workflow {id}." });
         workflow.Status = "failed";
         workflow.ApprovalStatus = "not_requested";
+        var reasonText = data.TryGetProperty("reason", out var reason)
+            ? reason.GetString() ?? "Design generation failed."
+            : "Design generation failed without a detailed reason.";
+        workflow.FailureReason = reasonText[..Math.Min(reasonText.Length, 1000)];
         workflow.UpdatedAt = DateTimeOffset.UtcNow;
         await _context.SaveChangesAsync();
         return Ok(new { status = workflow.Status });

@@ -135,7 +135,11 @@ const IntakeForm: React.FC = () => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Error submitting form:', error);
-      setErrorMessage(error.message || 'An error occurred while connecting to the server.');
+      const apiError = error.response?.data;
+      setErrorMessage(
+        apiError?.message || apiError?.Message || apiError?.details || apiError?.Details ||
+        error.message || 'An error occurred while connecting to the server.'
+      );
     } finally {
       setIsSubmitting(false);
     }

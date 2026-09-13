@@ -11,7 +11,8 @@ public record WorkflowStatusResponseDto(
     string? SlopeEstimate,
     HouseDesignSummaryDto? Design,
     CostSummaryDto? Cost,
-    string ApprovalStatus
+    string ApprovalStatus,
+    string? FailureReason = null
 );
 
 public record HouseDesignSummaryDto(

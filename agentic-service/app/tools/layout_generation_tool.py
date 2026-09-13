@@ -172,20 +172,25 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
                                                       land_size_perches, plot=plot, design=candidate)
                             metrics = calculate_quality_metrics(candidate)
                             narrow_plot = min(plot.buildable_width, plot.buildable_length) < NARROW_PLOT_THRESHOLD_FT
+                            quality_issues = []
                             if not narrow_plot and metrics['circulation_ratio'] > CIRCULATION_VERY_POOR_RATIO:
-                                check.fail(
-                                    'circulation_efficiency',
+                                quality_issues.append(
                                     f"Circulation area is {metrics['circulation_area']:.1f} sqft of "
                                     f"{metrics['actual_room_footprint_area']:.1f} sqft "
                                     f"({metrics['circulation_ratio']:.1%}). Reduce hallway length or use "
                                     "a compact bedroom cluster."
                                 )
                             if not narrow_plot and metrics['longest_hallway_ft'] > HALLWAY_EXTREME_LENGTH_FT:
-                                check.fail(
-                                    'hallway_length',
+                                quality_issues.append(
                                     f"Longest hallway is {metrics['longest_hallway_ft']:.1f} ft. "
                                     "Create a substantially different compact circulation strategy."
                                 )
+                            # Quality issues get bounded revision attempts. On the final
+                            # attempt, preserve a geometrically valid candidate and let
+                            # deterministic scoring rank it instead of failing the workflow.
+                            if quality_issues and revision < MAX_AI_REVISIONS - 1:
+                                for issue in quality_issues:
+                                    check.fail('design_quality', issue)
                             candidate_fingerprint = geometry_fingerprint(candidate)
                             if any(item.geometry_fingerprint == candidate_fingerprint for item in valid_candidates):
                                 check.fail(
@@ -199,7 +204,8 @@ def generate_layout(land_size_perches: float, terrain_type: str, preferences: di
                                                                'revision_count': revision,
                                                                'score_breakdown': breakdown,
                                                                'quality_metrics': metrics,
-                                                               'quality_feedback': quality_feedback(metrics)}
+                                                               'quality_feedback': quality_feedback(metrics),
+                                                               'accepted_quality_warnings': quality_issues}
                                 valid_candidates.append(candidate)
                                 print(f'[Geometry Validator] Candidate {candidate_index + 1} passed; score={candidate.design_score}')
                                 break

@@ -62,6 +62,7 @@ export interface WorkflowStatusResponseDto {
   design: HouseDesignSummaryDto | null;
   cost: any | null; // Expand when Component C is integrated
   approvalStatus: string;
+  failureReason?: string | null;
 }
 
 export interface GenerateDesignRequest {

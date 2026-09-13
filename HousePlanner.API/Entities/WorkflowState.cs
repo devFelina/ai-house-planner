@@ -32,6 +32,9 @@ public class WorkflowState
     [MaxLength(30)]
     public string ApprovalStatus { get; set; } = "not_requested";
 
+    [MaxLength(1000)]
+    public string? FailureReason { get; set; }
+
     public Guid? ApprovedByUserId { get; set; }
 
     [ForeignKey("ApprovedByUserId")]
