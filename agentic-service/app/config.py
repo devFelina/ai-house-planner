@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 
-
+OUTPUT_PLANS_DIR = Path(__file__).resolve().parents[1] / "output_plans"
+OUTPUT_PLANS_DIR.mkdir(parents=True, exist_ok=True)
 def load_dotenv():
     env_paths = [
         os.path.join(os.path.dirname(__file__), "..", ".env"),

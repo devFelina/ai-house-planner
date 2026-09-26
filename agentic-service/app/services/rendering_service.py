@@ -10,6 +10,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
+from app.config import OUTPUT_PLANS_DIR
 from app.schemas.workflow_state import WorkflowState
 
 ABBREVIATIONS = {
@@ -65,10 +66,10 @@ def rendering_node(state: WorkflowState) -> WorkflowState:
         ax.set_ylabel('Feet (y)', labelpad=8)
         ax.grid(True, linestyle='--', alpha=0.25)
 
-    os.makedirs('output_plans', exist_ok=True)
-    file_path = f'output_plans/plan_{state.workflow_id}.png'
+    OUTPUT_PLANS_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = OUTPUT_PLANS_DIR / f'plan_{state.workflow_id}.png'
     fig.tight_layout(rect=(0, 0, 1, 0.95), pad=1.2)
-    fig.savefig(file_path, bbox_inches='tight', pad_inches=0.15, dpi=220)
+    fig.savefig(str(file_path), bbox_inches='tight', pad_inches=0.15, dpi=220)
     plt.close(fig)
     state.execution_log.append({
         'agent_name': 'RenderingAgent', 'action': f'Saved visual plan to {file_path}',
