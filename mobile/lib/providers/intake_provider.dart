@@ -36,6 +36,7 @@ class IntakeNotifier extends StateNotifier<AsyncValue<LandSubmission>> {
     int? preferredFloors,
     String? stylePreference,
     String? spacePriority,
+    String? targetCompletionDate,
   }) {
     final currentData = state.value ?? LandSubmission();
     state = AsyncValue.data(currentData.copyWith(
@@ -55,6 +56,7 @@ class IntakeNotifier extends StateNotifier<AsyncValue<LandSubmission>> {
       preferredFloors: preferredFloors,
       stylePreference: stylePreference,
       spacePriority: spacePriority,
+      targetCompletionDate: targetCompletionDate,
       
       clearManualTerrain: manualTerrainType != null ? false : currentData.landPhoto != null,
     ));
@@ -144,6 +146,10 @@ class IntakeNotifier extends StateNotifier<AsyncValue<LandSubmission>> {
         },
         'designSeed': DateTime.now().millisecondsSinceEpoch % 100000,
       };
+
+      if (data.targetCompletionDate != null && data.targetCompletionDate!.isNotEmpty) {
+        (payload['preferences'] as Map<String, dynamic>)['targetCompletionDate'] = data.targetCompletionDate;
+      }
 
       // Conditionally add base plan fields (same as web)
       final effectiveBasePlanId = basePlanId ?? data.basePreDesignedPlanId;
