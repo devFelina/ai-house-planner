@@ -11,51 +11,59 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import pytest
 
-import app.knowledge.rag_pipeline
-from app.knowledge.rag_pipeline import (
-    search_architecture_knowledge,
-    search_knowledge_as_dicts,
-)
+from app.knowledge.retrieval_service import search_architecture_knowledge, search_knowledge_as_dicts
+from app.knowledge.repository import RetrievedChunk
 
 _last_query = ""
 
+def fake_generate_embedding(text: str) -> list[float]:
+    global _last_query
+    _last_query = text
+    return [0.1] * 1536
+
+class FakeKnowledgeRepository:
+    def ensure_schema(self) -> None:
+        pass
+
+    def store_chunks(self, chunks: list, embeddings: list[list[float]]) -> tuple[int, int]:
+        return len(chunks), 0
+
+    def search(self, query_embedding: list[float], top_k: int, category_filter: str | None, similarity_threshold: float) -> list[RetrievedChunk]:
+        if "chocolate cake" in _last_query.lower():
+            res = [RetrievedChunk('Cake', 'Recipe', 'cooking', 'Source', 0.2)]
+        elif "ventilate" in _last_query.lower():
+            res = [RetrievedChunk('Vent', 'Air', 'ventilation', 'Source', 0.9)]
+        elif "foundation" in _last_query.lower():
+            res = [RetrievedChunk('Found', 'Concrete', 'construction_stages', 'Source', 0.9)]
+        elif "direction" in _last_query.lower():
+            res = [RetrievedChunk('Orient', 'Sun', 'orientation', 'Source', 0.9)]
+        elif "setback" in _last_query.lower():
+            res = [RetrievedChunk('Set', 'Line', 'land_planning', 'Source', 0.9)]
+        elif "bedroom size" in _last_query.lower():
+            res = [RetrievedChunk('Bed', 'Size', 'residential_planning', 'Source', 0.9)]
+        else:
+            res = [RetrievedChunk('Title', 'Content', 'general', 'Source', 0.9)]
+            
+        return [r for r in res if r.similarity >= similarity_threshold]
+
 @pytest.fixture(autouse=True)
 def mock_dependencies(monkeypatch):
-    def fake_embedding(text: str) -> list[float]:
-        global _last_query
-        _last_query = text
-        return [0.1] * 1536
-    monkeypatch.setattr(app.knowledge.rag_pipeline, '_generate_embedding', fake_embedding)
-    monkeypatch.setattr(app.knowledge.rag_pipeline, '_get_db_connection_string', lambda: "fake_dsn")
-
-    class MockCursor:
-        def execute(self, *args, **kwargs):
-            pass
-        def fetchall(self):
-            if "chocolate cake" in _last_query.lower():
-                return [('Cake', 'Recipe', 'cooking', 'Source', 0.2)]
-            elif "ventilate" in _last_query.lower():
-                return [('Vent', 'Air', 'ventilation', 'Source', 0.9)]
-            elif "foundation" in _last_query.lower():
-                return [('Found', 'Concrete', 'construction_stages', 'Source', 0.9)]
-            elif "direction" in _last_query.lower():
-                return [('Orient', 'Sun', 'orientation', 'Source', 0.9)]
-            elif "setback" in _last_query.lower():
-                return [('Set', 'Line', 'land_planning', 'Source', 0.9)]
-            elif "bedroom size" in _last_query.lower():
-                return [('Bed', 'Size', 'residential_planning', 'Source', 0.9)]
-            return [('Title', 'Content', 'general', 'Source', 0.9)]
-        def close(self):
-            pass
-
-    class MockConnection:
-        def cursor(self):
-            return MockCursor()
-        def close(self):
-            pass
-
-    monkeypatch.setattr('psycopg2.connect', lambda *args, **kwargs: MockConnection())
-
+    import app.knowledge.retrieval_service
+    
+    # We patch the default parameters at the module level so tests calling without args still use the fake
+    monkeypatch.setattr(app.knowledge.retrieval_service, "default_generate_embedding", fake_generate_embedding)
+    
+    # We also need to monkeypatch the inner function's instantiation of PostgresKnowledgeRepository if they don't pass it
+    original_search = app.knowledge.retrieval_service.search_architecture_knowledge
+    
+    def fake_search(query, top_k=3, category_filter=None, repository=None, generate_embedding=None):
+        if repository is None:
+            repository = FakeKnowledgeRepository()
+        if generate_embedding is None:
+            generate_embedding = fake_generate_embedding
+        return original_search(query, top_k, category_filter, repository, generate_embedding)
+        
+    monkeypatch.setattr(app.knowledge.retrieval_service, "search_architecture_knowledge", fake_search)
 
 def test_ventilation_retrieves_ventilation():
     """Ventilation question should retrieve ventilation-category chunks."""

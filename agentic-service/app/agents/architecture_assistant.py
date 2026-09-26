@@ -100,7 +100,7 @@ Pay attention to the previous conversation history if provided, as the user migh
         
         # Determine tools based on intent
         if intent == 'GENERAL_ADVICE':
-            from app.knowledge.rag_pipeline import search_knowledge_as_dicts
+            from app.knowledge.retrieval_service import search_knowledge_as_dicts
             try:
                 knowledge = search_knowledge_as_dicts(message, top_k=3)
                 context_str += f"RAG Knowledge:\n{knowledge}\n"
@@ -111,7 +111,7 @@ Pay attention to the previous conversation history if provided, as the user migh
             if reqs:
                 advice = generate_feasibility_advice(reqs)
                 context_str += f"System Feasibility Advice:\n{advice}\n"
-            from app.knowledge.rag_pipeline import search_knowledge_as_dicts
+            from app.knowledge.retrieval_service import search_knowledge_as_dicts
             try:
                 knowledge = search_knowledge_as_dicts(message, top_k=2)
                 context_str += f"RAG Knowledge:\n{knowledge}\n"
@@ -155,7 +155,7 @@ Pay attention to the previous conversation history if provided, as the user migh
             action_payload = {"context": proj_context}
             
         elif intent == 'CONSTRUCTION_QUESTION':
-            from app.knowledge.rag_pipeline import search_knowledge_as_dicts
+            from app.knowledge.retrieval_service import search_knowledge_as_dicts
             try:
                 knowledge = search_knowledge_as_dicts(message, top_k=3)
                 context_str += f"RAG Knowledge:\n{knowledge}\n"
