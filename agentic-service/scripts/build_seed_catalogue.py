@@ -14,7 +14,7 @@ from app.design.plan_adapter import finish_layout
 from app.design.plot_constraints import PlotConstraints
 from app.design.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult, RoomLayout
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 r1 = [
     {"room_id": "living", "room_type": "living_room", "floor": 1, "x": 0, "y": 0, "width": 11, "length": 13},

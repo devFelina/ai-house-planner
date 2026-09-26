@@ -1,12 +1,13 @@
+from __future__ import annotations
 from langgraph.graph import END, StateGraph
 
 from app.agents.construction_planning_agent import construction_planning_node
-from app.agents.coordinator_agent import coordinator_node
+from app.orchestration.workflow_router import coordinator_node
 from app.agents.cost_estimation_agent import cost_estimation_node
 from app.agents.design_agent import design_node
 from app.agents.land_analysis_agent import land_analysis_node
 from app.agents.rendering_agent import rendering_node
-from app.agents.validation_agent import validation_node
+from app.validation.design_validation_service import validation_node
 from app.schemas.workflow_state import WorkflowState
 
 

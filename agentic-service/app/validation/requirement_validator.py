@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Semantic requirement validation for Architecture Assistant.
 Checks logic and sanity of requested design features BEFORE spatial feasibility.
@@ -5,7 +6,7 @@ Checks logic and sanity of requested design features BEFORE spatial feasibility.
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.agents.feasibility_engine import (
+from app.land.feasibility_engine import (
     _load_catalogue,
 )
 

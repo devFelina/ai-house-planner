@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Deterministic geometry validation for house designs.
 
@@ -26,7 +27,7 @@ from app.design.room_rules import (
     rule_for,
 )
 from app.schemas.design_result import DesignResult, RoomLayout
-from app.tools.land_utils import max_buildable_area
+from app.land.land_math import max_buildable_area
 
 
 class GeometryValidationResult:

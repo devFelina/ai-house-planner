@@ -17,7 +17,7 @@ from app.design.plan_adapter import finish_layout
 from app.design.plot_constraints import PlotConstraints
 from app.design.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult, RoomLayout
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 LOG = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]

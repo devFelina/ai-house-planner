@@ -1,3 +1,4 @@
+from __future__ import annotations
 import random
 from math import sqrt
 from typing import Literal
@@ -5,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.design.models import Direction, Terrain
-from app.tools.land_utils import max_buildable_area, perches_to_sqft
+from app.land.land_math import max_buildable_area, perches_to_sqft
 
 
 class Setbacks(BaseModel):

@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.tools.land_utils import SQFT_PER_PERCH, max_buildable_area, perches_to_sqft
+from app.land.land_math import SQFT_PER_PERCH, max_buildable_area, perches_to_sqft
 
 # ---------------------------------------------------------------------------
 # Constants

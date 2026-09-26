@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.agents.feasibility_engine import (
+from app.land.feasibility_engine import (
     SQFT_PER_PERCH,
     check_feasibility,
     generate_feasibility_advice,

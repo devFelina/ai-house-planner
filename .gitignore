@@ -28,9 +28,14 @@ HousePlanner.API/App_Data/
 # Python
 agentic-service/venv/
 venv/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
 .pytest_cache/
+execution_log.json
+test_out.log
+uvicorn.log
 
 # Flutter/Dart
 mobile/.dart_tool/

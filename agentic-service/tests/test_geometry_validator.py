@@ -1,5 +1,6 @@
+from __future__ import annotations
 from app.schemas.design_result import RoomLayout
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 
 def test_validate_geometry_success():

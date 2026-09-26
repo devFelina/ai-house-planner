@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 """
 Validation / Safety Agent (Component D — Stage 1)

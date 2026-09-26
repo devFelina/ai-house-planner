@@ -19,7 +19,7 @@ from app.agents.cost_estimation_agent import (
     _persist_cost_estimate,
     cost_estimation_node,
 )
-from app.agents.validation_agent import validation_node
+from app.validation.design_validation_service import validation_node
 from app.schemas.cost_result import CostResult
 from app.schemas.pricing_data import PricingItem
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState

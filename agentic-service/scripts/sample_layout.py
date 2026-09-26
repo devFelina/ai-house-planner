@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 
 from app.design.architectural_quality import validate_architectural_quality
@@ -5,7 +6,7 @@ from app.design.models import Requirements
 from app.design.plan_adapter import finish_layout
 from app.design.plot_constraints import PlotConstraints
 from app.schemas.design_result import DesignResult
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 
 def sample_and_report(target_beds, target_floors, data):

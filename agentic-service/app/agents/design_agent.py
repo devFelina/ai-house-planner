@@ -14,7 +14,7 @@ from app.design.architectural_quality import validate_architectural_quality
 from app.design.candidate_generator import GenerationFailure
 from app.design.revision import preserve_revision_preferences
 from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 from app.tools.layout_generation_tool import generate_layout, prepare_inputs
 
 

@@ -33,8 +33,8 @@ from app.design.topology_registry import eligible_topologies
 from app.providers import get_available_design_provider, get_next_design_provider
 from app.schemas.ai_plan_decision import AIPlanDecision
 from app.schemas.design_result import DesignResult
-from app.tools.geometry_validator import validate_geometry
-from app.tools.land_utils import MAX_COVERAGE_RATIO, SQFT_PER_PERCH
+from app.validation.geometry_validator import validate_geometry
+from app.land.land_math import MAX_COVERAGE_RATIO, SQFT_PER_PERCH
 
 SYSTEM_PROMPT = (
 

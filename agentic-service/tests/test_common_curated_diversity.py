@@ -10,7 +10,7 @@ from app.design.plot_constraints import PlotConstraints
 from app.design.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult
 from app.tools import layout_generation_tool as generation
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 PREFIX = "HP-CURATED-COMMON-"
 TARGETS = ((2, 1, 1), (2, 2, 1), (4, 3, 2), (5, 3, 2))

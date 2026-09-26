@@ -1,3 +1,4 @@
+from __future__ import annotations
 """End-to-end test: LLM interpretation → deterministic feasibility engine."""
 import sys, os, json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

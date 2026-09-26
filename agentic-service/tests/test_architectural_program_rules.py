@@ -5,7 +5,7 @@ from app.design.base_plan_library import load_base_plan_catalog
 from app.design.models import Requirements
 from app.design.plot_constraints import PlotConstraints
 from app.design.room_rules import room_kind
-from app.tools.geometry_validator import validate_geometry
+from app.validation.geometry_validator import validate_geometry
 
 
 def plan(floors):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from app.schemas.workflow_state import WorkflowState
 
 

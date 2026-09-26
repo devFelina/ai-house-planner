@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -57,7 +58,7 @@ class AgentResponse(BaseModel):
     action: AssistantAction
 
 def interpret_user_message(message: str, history: list[dict] | None = None) -> dict:
-    from app.agents.feasibility_engine import (
+    from app.land.feasibility_engine import (
         check_feasibility,
         generate_feasibility_advice,
     )
@@ -119,7 +120,7 @@ Pay attention to the previous conversation history if provided, as the user migh
                 
         elif intent == 'DESIGN_REQUEST':
             if reqs:
-                from app.agents.requirement_validator import (
+                from app.validation.requirement_validator import (
                     validate_requirements_sanity,
                 )
                 sanity = validate_requirements_sanity(reqs)

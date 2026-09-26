@@ -1,5 +1,6 @@
-from app.agents.feasibility_engine import check_feasibility
-from app.agents.requirement_validator import validate_requirements_sanity
+from __future__ import annotations
+from app.land.feasibility_engine import check_feasibility
+from app.validation.requirement_validator import validate_requirements_sanity
 
 
 def test_2Bedrooms12Bathrooms_IsRejectedOrUnsupported():

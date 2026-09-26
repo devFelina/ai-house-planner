@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Centralized land measurement utilities.
 Single source of truth for perch-to-sqft conversion and coverage calculations.
