@@ -13,6 +13,7 @@ class LandSubmission {
   final String? northOrientation;
   final String? entranceSide;
   final String? plotSetbacks;
+  final String? targetCompletionDate;
 
   // Preferences
   final int? preferredBedrooms;
@@ -47,6 +48,7 @@ class LandSubmission {
     this.northOrientation = 'north',
     this.entranceSide = 'south',
     this.plotSetbacks,
+    this.targetCompletionDate,
 
     this.preferredBedrooms,
     this.preferredBathrooms = 1,
@@ -80,6 +82,7 @@ class LandSubmission {
     String? northOrientation,
     String? entranceSide,
     String? plotSetbacks,
+    String? targetCompletionDate,
 
     int? preferredBedrooms,
     int? preferredBathrooms,
@@ -114,6 +117,7 @@ class LandSubmission {
       northOrientation: northOrientation ?? this.northOrientation,
       entranceSide: entranceSide ?? this.entranceSide,
       plotSetbacks: plotSetbacks ?? this.plotSetbacks,
+      targetCompletionDate: targetCompletionDate ?? this.targetCompletionDate,
 
       preferredBedrooms: preferredBedrooms ?? this.preferredBedrooms,
       preferredBathrooms: preferredBathrooms ?? this.preferredBathrooms,
