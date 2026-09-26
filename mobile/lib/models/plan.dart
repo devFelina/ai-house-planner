@@ -95,7 +95,7 @@ class Plan {
       slug: json['slug'] ?? '',
       description: json['description'] ?? '',
       style: json['style'] ?? '',
-      estimatedCost: (json['estimatedCost'] ?? 0).toDouble(),
+      estimatedCost: _parseDouble(json['estimatedCost']),
       squareFootage: (json['squareFootage'] as num?)?.toInt() ?? 0,
       bedrooms: (json['bedrooms'] as num?)?.toInt() ?? 0,
       bathrooms: (json['bathrooms'] as num?)?.toInt() ?? 0,
@@ -104,7 +104,7 @@ class Plan {
       category: json['category'] ?? 'Standard',
       suitableTerrain: json['suitableTerrain'] ?? 'Flat',
       floorCount: (json['floorCount'] as num?)?.toInt() ?? 1,
-      totalBuiltUpAreaSqft: (json['totalBuiltUpAreaSqft'] ?? json['squareFootage'] ?? 0).toDouble(),
+      totalBuiltUpAreaSqft: _parseDouble(json['totalBuiltUpAreaSqft'] ?? json['squareFootage']),
       minimumLandSizePerches: (json['minimumLandSizePerches'] as num?)?.toInt() ?? 10,
       parkingSpaces: (json['parkingSpaces'] as num?)?.toInt() ?? 0,
       hasBalcony: json['hasBalcony'] ?? false,
@@ -114,8 +114,8 @@ class Plan {
       tags: (json['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
       thumbnailUrl: thumb ?? '',
       isActive: json['isActive'] ?? true,
-      minimumPlotWidthFt: (json['minimumPlotWidthFt'] as num?)?.toDouble(),
-      minimumPlotLengthFt: (json['minimumPlotLengthFt'] as num?)?.toDouble(),
+      minimumPlotWidthFt: _parseDoubleOrNull(json['minimumPlotWidthFt']),
+      minimumPlotLengthFt: _parseDoubleOrNull(json['minimumPlotLengthFt']),
       hasUtilityRoom: json['hasUtilityRoom'] ?? false,
       conceptualDisclaimer: json['conceptualDisclaimer'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
@@ -123,4 +123,19 @@ class Plan {
       layout: parsedLayout,
     );
   }
+
+  static double _parseDouble(dynamic value, [double defaultValue = 0.0]) {
+    if (value == null) return defaultValue;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue; // Return default if it's a map or other type
+  }
+
+  static double? _parseDoubleOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 }
+
