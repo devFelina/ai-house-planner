@@ -1,6 +1,6 @@
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
 from app.schemas.design_result import DesignResult, Entrance, RoomLayout
 
 

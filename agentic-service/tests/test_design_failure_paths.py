@@ -5,13 +5,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.agents.design_agent import _safe_failure_reason, design_node
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.base_plan_library import BasePlanRecord
-from app.design.candidate_generator import GenerationFailure
-from app.design.models import Connection, Entrance
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.catalogue.base_plan_library import BasePlanRecord
+from app.design.generation.candidate_generator import GenerationFailure
+from app.design.program.models import Connection, Entrance
 from app.schemas.design_result import DesignResult, RoomLayout
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState
-from app.tools.layout_generation_tool import generate_layout
+from app.design.generation.generation_service import generate_layout
 from app.workflows.house_planning_graph import app_graph
 
 
@@ -70,9 +70,9 @@ def test_complete_optional_context_reaches_design_prompt():
         layout_json=DesignResult(floor_count=1, foundation_type='slab').model_dump_json()
     )
     with (
-        patch('app.tools.layout_generation_tool.filter_compatible_base_plans', return_value=[dummy_plan]),
-        patch('app.tools.layout_generation_tool.get_available_design_provider', return_value=mock_provider),
-        patch('app.design.plan_adapter.PlanAdapter.adapt') as mock_adapt,
+        patch('app.design.generation.generation_service.filter_compatible_base_plans', return_value=[dummy_plan]),
+        patch('app.design.generation.generation_service.get_available_design_provider', return_value=mock_provider),
+        patch('app.design.generation.plan_adapter.PlanAdapter.adapt') as mock_adapt,
     ):
         mock_adapt.return_value = MagicMock(template_id='HP-TEST', template_family='COMPACT_RECTANGLE', rooms=[])
         with suppress(GenerationFailure, ValueError):
@@ -112,7 +112,7 @@ def test_seeded_request_still_calls_remote_advice_once():
         },
         "reason_codes": ["plot_fit"]
     }
-    with patch('app.tools.layout_generation_tool.get_available_design_provider', return_value=mock_provider):
+    with patch('app.design.generation.generation_service.get_available_design_provider', return_value=mock_provider):
         result = generate_layout(20, 'flat', {'floors':1}, design_seed=8)
 
     assert result.candidate_summary['generation_mode'] == 'deterministic_fallback'

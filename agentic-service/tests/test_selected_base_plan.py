@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.design.candidate_generator import GenerationFailure
-from app.tools import layout_generation_tool as tool
+from app.design.generation.candidate_generator import GenerationFailure
+from app.design.generation import generation_service as tool
 
 
 def test_preferred_plan_restricts_existing_ai_candidate_pool(monkeypatch):

@@ -1,8 +1,8 @@
 """Shared wall intervals and traversable graphs; touching corners are not doors."""
 from collections import deque
 
-from app.design.models import Connection
-from app.design.room_rules import CIRCULATION_TYPES, MIN_DOOR_WIDTH, room_kind
+from app.design.program.models import Connection
+from app.design.program.room_rules import CIRCULATION_TYPES, MIN_DOOR_WIDTH, room_kind
 from app.schemas.design_result import Opening, RoomLayout
 
 EPS = 0.001

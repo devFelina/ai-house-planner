@@ -1,9 +1,9 @@
 """Deterministic conceptual quality scores, applied only to valid candidates."""
-from app.design.adjacency import graph_for, shared_wall
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.quality_metrics import calculate_quality_metrics
-from app.design.room_rules import room_kind
+from app.design.geometry.adjacency import graph_for, shared_wall
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.quality.quality_metrics import calculate_quality_metrics
+from app.design.program.room_rules import room_kind
 from app.schemas.design_result import DesignResult
 
 SCORE_WEIGHTS = {

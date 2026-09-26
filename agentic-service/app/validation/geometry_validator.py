@@ -11,16 +11,16 @@ All checks are rule-based — no AI involved.
 """
 from math import isfinite
 
-from app.design.adjacency import (
+from app.design.geometry.adjacency import (
     exterior_segments,
     graph_for,
     reachable,
     road_access_clear,
     shared_wall,
 )
-from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_rules import (
+from app.design.geometry.geometry_engine import TERRAIN_FOUNDATION_MAP
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_rules import (
     CIRCULATION_TYPES,
     MIN_COMPACTNESS,
     room_kind,
@@ -296,7 +296,7 @@ def _validate_spatial_rules(result: GeometryValidationResult, rooms: list[RoomLa
                 result.fail('invalid_connection', 'Door connection lacks a shared wall of sufficient width.')
                 continue
             side, lo, hi = wall
-            from app.design.adjacency import OPPOSITE
+            from app.design.geometry.adjacency import OPPOSITE
             def intervals(room: RoomLayout, side: str) -> list[tuple[float, float]]:
                 origin = room.x if side in ('north', 'south') else room.y
                 return [(origin+d.offset, origin+d.offset+d.width) for d in room.doors if d.wall == side]

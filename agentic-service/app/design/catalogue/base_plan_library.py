@@ -9,21 +9,21 @@ from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
 
-from app.design.adjacency import exterior_segments, graph_for
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.diversity import geometry_fingerprint
-from app.design.models import Requirements
-from app.design.plan_adapter import transform_design
-from app.design.plan_suitability import accessibility_details, suitability_breakdown
-from app.design.plot_constraints import PlotConstraints
-from app.design.quality_metrics import calculate_quality_metrics
-from app.design.room_counts import count_bathrooms
-from app.design.room_rules import room_kind
+from app.design.geometry.adjacency import exterior_segments, graph_for
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.program.models import Requirements
+from app.design.generation.plan_adapter import transform_design
+from app.design.catalogue.plan_suitability import accessibility_details, suitability_breakdown
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.quality.quality_metrics import calculate_quality_metrics
+from app.design.program.room_counts import count_bathrooms
+from app.design.program.room_rules import room_kind
 from app.schemas.design_result import DesignResult
 
 CATALOG_MIN_SIZE = 20
 logger = logging.getLogger(__name__)
-SEED_PATH = Path(__file__).resolve().parents[3] / 'HousePlanner.API' / 'Data' / 'Seed' / 'pre-designed-plans.json'
+SEED_PATH = Path(__file__).resolve().parents[4] / 'HousePlanner.API' / 'Data' / 'Seed' / 'pre-designed-plans.json'
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,8 @@
 """Seed and diversity contracts for the current validated-template flow."""
 import pytest
 
-from app.design.diversity import geometry_fingerprint
-from app.tools import layout_generation_tool as generation
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.generation import generation_service as generation
 
 PREFERENCES = {'bedrooms': 4, 'bathrooms': 2, 'floors': 2, 'style': 'modern'}
 PLOT = {'plot_width_ft': 70, 'plot_length_ft': 75}

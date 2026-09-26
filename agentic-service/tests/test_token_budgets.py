@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.design.candidate_generator import GenerationFailure
-from app.tools import layout_generation_tool as generation
+from app.design.generation.candidate_generator import GenerationFailure
+from app.design.generation import generation_service as generation
 
 PREFERENCES = {'bedrooms': 4, 'bathrooms': 2, 'floors': 2, 'style': 'modern'}
 PLOT = {'plot_width_ft': 70, 'plot_length_ft': 75}

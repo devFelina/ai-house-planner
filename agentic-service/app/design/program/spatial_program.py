@@ -1,5 +1,5 @@
-from app.design.models import Requirements, RoomSpec, SpatialProgram
-from app.design.room_rules import rule_for
+from app.design.program.models import Requirements, RoomSpec, SpatialProgram
+from app.design.program.room_rules import rule_for
 
 
 def build_program(req: Requirements) -> SpatialProgram:

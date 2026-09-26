@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 
-from app.design.diversity import geometry_fingerprint
+from app.design.generation.diversity import geometry_fingerprint
 from app.schemas.design_result import DesignResult
-from scripts.add_curated_diversity import (
+from scripts.catalogue.add_curated_diversity import (
     SEED_PATH,
     build_design,
     seed_entry,

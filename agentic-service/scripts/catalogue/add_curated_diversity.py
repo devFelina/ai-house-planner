@@ -10,17 +10,17 @@ import json
 import logging
 from pathlib import Path
 
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.diversity import geometry_fingerprint
-from app.design.models import Requirements
-from app.design.plan_adapter import finish_layout
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_counts import count_bathrooms
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.program.models import Requirements
+from app.design.generation.plan_adapter import finish_layout
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult, RoomLayout
 from app.validation.geometry_validator import validate_geometry
 
 LOG = logging.getLogger(__name__)
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 SEED_PATH = ROOT / "HousePlanner.API/Data/Seed/pre-designed-plans.json"
 PREFIX = "HP-CURATED-"
 

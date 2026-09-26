@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from app.design.diversity import geometry_fingerprint, stable_seed
-from app.design.geometry_engine import generate_geometry
-from app.design.models import ConceptAdvice, Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.scoring import family_affinity, score_layout
-from app.design.spatial_program import build_program
-from app.design.topology_registry import eligible_topologies
+from app.design.generation.diversity import geometry_fingerprint, stable_seed
+from app.design.geometry.geometry_engine import generate_geometry
+from app.design.program.models import ConceptAdvice, Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.quality.scoring import family_affinity, score_layout
+from app.design.program.spatial_program import build_program
+from app.design.geometry.topology_registry import eligible_topologies
 from app.schemas.design_result import DesignResult
 from app.validation.geometry_validator import validate_geometry
 

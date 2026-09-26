@@ -6,8 +6,8 @@ arbitrary architectural instructions.
 """
 from typing import Any
 
-from app.design.models import Requirements
-from app.design.room_counts import count_bathrooms
+from app.design.program.models import Requirements
+from app.design.program.room_counts import count_bathrooms
 
 
 def preserve_revision_preferences(preferences: dict, previous_design: dict | None) -> dict:

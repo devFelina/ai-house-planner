@@ -2,7 +2,7 @@
 import json
 from unittest.mock import MagicMock
 
-from app.tools import layout_generation_tool as generation
+from app.design.generation import generation_service as generation
 
 PREFERENCES = {'bedrooms': 3, 'bathrooms': 2, 'floors': 1, 'style': 'Modern Minimalist'}
 PLOT = {'plot_width_ft': 90, 'plot_length_ft': 65, 'road_side': 'south'}
@@ -46,7 +46,7 @@ def previous_without_ai(monkeypatch):
 def test_normal_generation_calls_ai_once_and_persists_provider_metadata(monkeypatch, caplog):
     openai = provider()
     monkeypatch.setattr(generation, 'get_available_design_provider', lambda: openai)
-    caplog.set_level('INFO', logger='app.tools.layout_generation_tool')
+    caplog.set_level('INFO', logger='app.design.generation.generation_service')
     result = generate()
     assert openai.generate_json.call_count == 1
     assert result.candidate_summary['generation_mode'] == 'ai_adapted_template'

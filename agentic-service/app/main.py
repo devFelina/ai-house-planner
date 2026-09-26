@@ -8,7 +8,7 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
 from app.config import INTERNAL_API_KEY
-from app.design.revision import preserve_revision_preferences
+from app.design.generation.revision import preserve_revision_preferences
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState
 from app.workflows.house_planning_graph import app_graph
 

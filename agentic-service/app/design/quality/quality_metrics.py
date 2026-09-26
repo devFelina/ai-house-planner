@@ -3,9 +3,9 @@ from collections import deque
 from math import hypot
 from typing import Any
 
-from app.design.adjacency import exterior_segments, graph_for
-from app.design.quality_config import QUALITY
-from app.design.room_rules import CIRCULATION_TYPES, room_kind
+from app.design.geometry.adjacency import exterior_segments, graph_for
+from app.design.quality.quality_config import QUALITY
+from app.design.program.room_rules import CIRCULATION_TYPES, room_kind
 from app.schemas.design_result import DesignResult, RoomLayout
 
 CIRCULATION_GOOD_RATIO = QUALITY.circulation_excellent

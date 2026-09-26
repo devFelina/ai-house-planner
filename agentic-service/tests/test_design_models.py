@@ -1,9 +1,9 @@
 import pytest
 
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.spatial_program import build_program
-from app.design.topology_registry import eligible_topologies
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.spatial_program import build_program
+from app.design.geometry.topology_registry import eligible_topologies
 
 
 def test_estimated_plot_and_distinct_area_caps():

@@ -2,10 +2,10 @@
 from copy import deepcopy
 from uuid import uuid4
 
-from app.design.adjacency import build_connections, exterior_segments, road_access_clear
-from app.design.geometry_engine import TERRAIN_FOUNDATION_MAP
-from app.design.models import Entrance
-from app.design.room_rules import room_kind
+from app.design.geometry.adjacency import build_connections, exterior_segments, road_access_clear
+from app.design.geometry.geometry_engine import TERRAIN_FOUNDATION_MAP
+from app.design.program.models import Entrance
+from app.design.program.room_rules import room_kind
 from app.schemas.design_result import DesignResult, Opening
 
 
@@ -16,7 +16,7 @@ def finish_layout(design, entrance_side='south', open_plan=False):
         room.area_sqft = round(room.width * room.length, 2)
     design.connections = build_connections(design.rooms, open_plan)
 
-    from app.design.adjacency import OPPOSITE, shared_wall
+    from app.design.geometry.adjacency import OPPOSITE, shared_wall
 
     attached = {room.room_id for room in design.rooms if room.room_type == 'bathroom_attached'}
     if attached:

@@ -1,14 +1,14 @@
 """Selection tests for site and preference suitability, without a live provider."""
 from dataclasses import replace
 
-from app.design.base_plan_library import (
+from app.design.catalogue.base_plan_library import (
     filter_compatible_base_plans,
     load_base_plan_catalog,
     rank_base_plans,
 )
-from app.design.plan_suitability import SUITABILITY_WEIGHTS, suitability_breakdown
-from app.tools import layout_generation_tool as generation
-from app.tools.layout_generation_tool import _candidate_pool, prepare_inputs
+from app.design.catalogue.plan_suitability import SUITABILITY_WEIGHTS, suitability_breakdown
+from app.design.generation import generation_service as generation
+from app.design.generation.generation_service import _candidate_pool, prepare_inputs
 
 
 def ranked(land, preferences, dimensions):
@@ -86,7 +86,7 @@ def test_impossible_dimensions_are_filtered_before_shortlist(monkeypatch):
                                     {'plot_width_ft': 50, 'plot_length_ft': 110})
     # minimum_plot_width_ft is compared against plot.plot_width_ft (not buildable_width)
     impossible = replace(source, plan_code='TOO-WIDE', minimum_plot_width_ft=(plot.plot_width_ft or 0) + 1)
-    import app.design.base_plan_library as library
+    import app.design.catalogue.base_plan_library as library
     monkeypatch.setattr(library, 'load_base_plan_catalog', lambda: [impossible])
     compatible = filter_compatible_base_plans(req, plot)
     assert compatible == []
@@ -95,7 +95,7 @@ def test_impossible_dimensions_are_filtered_before_shortlist(monkeypatch):
 def test_ai_metadata_contains_only_compact_selection_evidence():
     req, plot, _ = ranked(20, {'bedrooms': 3, 'bathrooms': 2, 'floors': 1},
                           {'plot_width_ft': 90, 'plot_length_ft': 65})
-    from app.design.base_plan_library import compact_plan_metadata
+    from app.design.catalogue.base_plan_library import compact_plan_metadata
     payload = compact_plan_metadata(_candidate_pool(req, plot)[:2], req, plot)
     required = {'plan_code', 'topology_family', 'suitability_score', 'supported_features',
                 'plot_fit', 'geometry_fingerprint'}
@@ -105,7 +105,7 @@ def test_ai_metadata_contains_only_compact_selection_evidence():
 
 def test_generation_emits_bounded_workflow_observability(caplog, monkeypatch):
     monkeypatch.setattr(generation, 'get_available_design_provider', lambda: None)
-    caplog.set_level('INFO', logger='app.tools.layout_generation_tool')
+    caplog.set_level('INFO', logger='app.design.generation.generation_service')
     result = generation.generate_layout(
         20, 'flat', {'bedrooms': 3, 'bathrooms': 2, 'floors': 1},
         plot_constraints={'plot_width_ft': 90, 'plot_length_ft': 65}, design_seed=7)
@@ -141,7 +141,7 @@ def test_total_plot_dims_pass_but_footprint_violates_buildable_envelope(monkeypa
     # D. Minimum total plot dims pass but footprint violates setback-adjusted buildable envelope -> rejected by geometry validation
     def test_total_plot_dims_pass_but_footprint_violates_buildable_envelope(monkeypatch):
         # D. Minimum total plot dims pass but footprint violates setback-adjusted buildable envelope -> rejected by filter
-        from app.design.base_plan_library import (
+        from app.design.catalogue.base_plan_library import (
             filter_compatible_base_plans_with_diagnostics,
         )
 

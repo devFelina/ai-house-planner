@@ -6,10 +6,10 @@ from dataclasses import asdict, dataclass
 from heapq import heappop, heappush
 from math import hypot, inf
 
-from app.design.adjacency import exterior_segments, graph_for, shared_wall
-from app.design.quality_config import QUALITY, WEIGHTS
-from app.design.quality_metrics import calculate_quality_metrics
-from app.design.room_rules import CIRCULATION_TYPES, room_kind
+from app.design.geometry.adjacency import exterior_segments, graph_for, shared_wall
+from app.design.quality.quality_config import QUALITY, WEIGHTS
+from app.design.quality.quality_metrics import calculate_quality_metrics
+from app.design.program.room_rules import CIRCULATION_TYPES, room_kind
 
 logger = logging.getLogger(__name__)
 

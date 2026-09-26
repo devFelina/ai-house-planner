@@ -3,9 +3,9 @@ import json
 
 import pytest
 
-from app.design import base_plan_library as library
-from app.design.room_counts import count_bathrooms
-from scripts import build_seed_catalogue as exporter
+from app.design.catalogue import base_plan_library as library
+from app.design.program.room_counts import count_bathrooms
+from scripts.catalogue import build_seed_catalogue as exporter
 
 
 @pytest.fixture
@@ -56,8 +56,8 @@ def test_seed_export_rejects_surplus_bathrooms(configured, floors):
 
 
 def test_seed_export_accepts_matching_bathrooms(two_bath_plan, monkeypatch):
-    import scripts.build_seed_catalogue
-    from app.design.plot_constraints import PlotConstraints
+    import scripts.catalogue.build_seed_catalogue
+    from app.design.geometry.plot_constraints import PlotConstraints
     
     # Use a large enough plot so the plan fits geometrically without a BUILDABLE_ENVELOPE_VIOLATION.
     def mock_plot(*args, **kwargs):
@@ -66,7 +66,7 @@ def test_seed_export_accepts_matching_bathrooms(two_bath_plan, monkeypatch):
         kwargs['terrain_type'] = 'flat'
         return PlotConstraints(*args, **kwargs)
         
-    monkeypatch.setattr(scripts.build_seed_catalogue, 'PlotConstraints', mock_plot)
+    monkeypatch.setattr(scripts.catalogue.build_seed_catalogue, 'PlotConstraints', mock_plot)
     valid, reason = exporter.validate_plan(two_bath_plan, 'flat')
     assert valid, reason
 

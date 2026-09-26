@@ -2,14 +2,14 @@ from collections import defaultdict
 
 import pytest
 
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.base_plan_library import load_base_plan_catalog
-from app.design.diversity import geometry_fingerprint
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_counts import count_bathrooms
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.catalogue.base_plan_library import load_base_plan_catalog
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult
-from app.tools import layout_generation_tool as generation
+from app.design.generation import generation_service as generation
 from app.validation.geometry_validator import validate_geometry
 
 TARGETS = ((3, 1, 1), (3, 2, 1), (4, 2, 2))

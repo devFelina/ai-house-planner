@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.design.models import Direction
+from app.design.program.models import Direction
 
 
 class StrictDecision(BaseModel):

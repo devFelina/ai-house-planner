@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.design.models import Connection, Entrance
+from app.design.program.models import Connection, Entrance
 
 
 class Opening(BaseModel):

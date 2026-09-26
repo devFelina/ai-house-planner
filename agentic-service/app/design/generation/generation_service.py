@@ -7,8 +7,8 @@ import json
 import logging
 from collections import Counter
 
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.base_plan_library import (
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.catalogue.base_plan_library import (
     compact_plan_metadata,
     compatibility_rejection_reasons,
     deduplicate_base_plans,
@@ -16,20 +16,20 @@ from app.design.base_plan_library import (
     load_base_plan_catalog,
     rank_base_plans,
 )
-from app.design.candidate_generator import GenerationFailure
-from app.design.diversity import geometry_fingerprint
-from app.design.models import Requirements
-from app.design.normalized_input import NormalizedDesignInput
-from app.design.plan_adapter import PlanAdapter
-from app.design.plan_suitability import suitability_breakdown
-from app.design.plot_constraints import PlotConstraints
-from app.design.revision import (
+from app.design.generation.candidate_generator import GenerationFailure
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.program.models import Requirements
+from app.design.program.normalized_input import NormalizedDesignInput
+from app.design.generation.plan_adapter import PlanAdapter
+from app.design.catalogue.plan_suitability import suitability_breakdown
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.generation.revision import (
     apply_supported_revision,
     preserve_revision_preferences,
     requests_another_design,
 )
-from app.design.scoring import family_affinity
-from app.design.topology_registry import eligible_topologies
+from app.design.quality.scoring import family_affinity
+from app.design.geometry.topology_registry import eligible_topologies
 from app.providers import get_available_design_provider, get_next_design_provider
 from app.schemas.ai_plan_decision import AIPlanDecision
 from app.schemas.design_result import DesignResult

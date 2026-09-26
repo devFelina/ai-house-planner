@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_rules import CIRCULATION_TYPES, room_kind
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_rules import CIRCULATION_TYPES, room_kind
 from app.schemas.design_result import DesignResult
 
 if TYPE_CHECKING:
-    from app.design.base_plan_library import BasePlanRecord
+    from app.design.catalogue.base_plan_library import BasePlanRecord
 
 
 SUITABILITY_WEIGHTS = {

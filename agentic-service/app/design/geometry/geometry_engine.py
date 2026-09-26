@@ -1,11 +1,11 @@
 """Parametric room banks used as the primary deterministic layout generator."""
 from math import sqrt
 
-from app.design.adjacency import build_connections, exterior_segments, road_access_clear
-from app.design.diversity import candidate_rng, stable_id, stable_seed
-from app.design.models import Entrance, Requirements, RoomSpec, SpatialProgram
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_rules import room_kind
+from app.design.geometry.adjacency import build_connections, exterior_segments, road_access_clear
+from app.design.generation.diversity import candidate_rng, stable_id, stable_seed
+from app.design.program.models import Entrance, Requirements, RoomSpec, SpatialProgram
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_rules import room_kind
 from app.schemas.design_result import DesignResult, Opening, RoomLayout
 
 TERRAIN_FOUNDATION_MAP = {'flat': 'slab', 'hillside': 'stepped', 'coastal': 'raised'}

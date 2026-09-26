@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from app.agents.design_agent import design_node
 from app.schemas.design_result import DesignResult
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState
-from app.tools.layout_generation_tool import select_template
+from app.design.generation.generation_service import select_template
 
 
 def test_select_template_for_hillside_three_bedroom_two_floor():

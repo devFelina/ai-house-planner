@@ -8,10 +8,10 @@ both validators; a failed arrangement aborts the export.
 import json
 from pathlib import Path
 
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.models import Requirements
-from app.design.plan_adapter import finish_layout
-from app.design.room_counts import count_bathrooms
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.program.models import Requirements
+from app.design.generation.plan_adapter import finish_layout
+from app.design.program.room_counts import count_bathrooms
 from app.schemas.design_result import DesignResult, RoomLayout
 from app.validation.geometry_validator import validate_geometry
 
@@ -106,7 +106,7 @@ def build():
                  'home_office': 'home_office' in kinds,'balcony': False,'veranda': False,'utility_room': 'utility' in kinds,'parking': True,'accessibility': True},
             'adaptation_support': {'rotations': [0,90,180,270],'living_scale': floors==1,'bedroom_scale': floors==1,'public_depth': 10},
             'architectural_metrics': quality.metrics,'layout_json': design.model_dump(),'active': True})
-    path=Path(__file__).resolve().parents[1]/'app/design/data/base_plans.json'
+    path=Path(__file__).resolve().parents[2]/'app/design/data/base_plans.json'
     path.write_text(json.dumps(output,indent=2)+'\n')
     print('VALIDATED',len(output))
 

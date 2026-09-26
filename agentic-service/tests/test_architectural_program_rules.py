@@ -1,10 +1,10 @@
 from copy import deepcopy
 
-from app.design.architectural_quality import validate_architectural_quality
-from app.design.base_plan_library import load_base_plan_catalog
-from app.design.models import Requirements
-from app.design.plot_constraints import PlotConstraints
-from app.design.room_rules import room_kind
+from app.design.quality.architectural_quality import validate_architectural_quality
+from app.design.catalogue.base_plan_library import load_base_plan_catalog
+from app.design.program.models import Requirements
+from app.design.geometry.plot_constraints import PlotConstraints
+from app.design.program.room_rules import room_kind
 from app.validation.geometry_validator import validate_geometry
 
 

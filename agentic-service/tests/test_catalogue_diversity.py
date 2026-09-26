@@ -5,12 +5,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.design.base_plan_library import load_base_plan_catalog
-from app.design.candidate_generator import GenerationFailure
-from app.design.diversity import geometry_fingerprint
-from app.design.plan_adapter import PlanAdapter, transform_design
+from app.design.catalogue.base_plan_library import load_base_plan_catalog
+from app.design.generation.candidate_generator import GenerationFailure
+from app.design.generation.diversity import geometry_fingerprint
+from app.design.generation.plan_adapter import PlanAdapter, transform_design
 from app.schemas.design_result import DesignResult
-from app.tools import layout_generation_tool as generation
+from app.design.generation import generation_service as generation
 
 PREFERENCES = {'bedrooms': 2, 'bathrooms': 1, 'floors': 1}
 PLOT = {'plot_width_ft': 90, 'plot_length_ft': 90}
