@@ -1,5 +1,5 @@
 """
-Cost Estimation Agent — LangGraph node (Component C).
+Cost Estimation Service — LangGraph node (Component C).
 
 Implements a fully deterministic cost calculation driven by:
   - Room geometry from state.design_result  (Component B output)
@@ -59,7 +59,7 @@ def cost_estimation_node(state: WorkflowState) -> WorkflowState:
     On failure  → sets state.status = 'failed', state.current_agent = 'failed',
                   appends an ExecutionLogEntry, and returns without crashing.
     """
-    print(f"[Cost Estimation Agent] Starting for workflow {state.workflow_id} …")
+    print(f"[Cost Estimation Service] Starting for workflow {state.workflow_id} …")
 
     started_at = datetime.now(timezone.utc)
     try:
@@ -79,7 +79,7 @@ def cost_estimation_node(state: WorkflowState) -> WorkflowState:
         if result.budget_delta_percent is not None
         else " (no customer budget supplied)"
     )
-    print(f"[Cost Estimation Agent] Done — total {result.total_cost_lkr:,.2f} LKR{budget_message}.")
+    print(f"[Cost Estimation Service] Done — total {result.total_cost_lkr:,.2f} LKR{budget_message}.")
     return state
 
 
@@ -158,8 +158,8 @@ class _CostEstimationFailure(Exception):
 
 def _fail(state: WorkflowState, reason: str) -> WorkflowState:
     """Mark state as failed with a concise, actionable log entry."""
-    print(f"[Cost Estimation Agent] FAILED — {reason}")
-    logger.error("[Cost Estimation Agent] FAILED — %s", reason)
+    print(f"[Cost Estimation Service] FAILED — {reason}")
+    logger.error("[Cost Estimation Service] FAILED — %s", reason)
     state.status = "failed"
     state.current_agent = "failed"
     state.execution_log.append(

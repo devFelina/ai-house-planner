@@ -19,7 +19,7 @@ ABBREVIATIONS = {
 
 
 def rendering_node(state: WorkflowState) -> WorkflowState:
-    print(f"[Rendering Agent] Generating conceptual plan for workflow {state.workflow_id}...")
+    print(f"[Rendering Service] Generating conceptual plan for workflow {state.workflow_id}...")
     if not state.design_result or not state.design_result.get('rooms') or not HAS_MATPLOTLIB:
         return state
 

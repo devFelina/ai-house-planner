@@ -49,7 +49,7 @@ RETRY_PROMPT = """Return ONLY a JSON object. No text before or after.
 
 
 
-def vision_classify_tool(photo_url: str) -> TerrainResult:
+def vision_classification_tool(photo_url: str) -> TerrainResult:
     if not OPENAI_API_KEY:
         print("[Vision Tool] No OPENAI_API_KEY set. Returning manual terrain required.")
         return _safe_fallback("manual_terrain_required")

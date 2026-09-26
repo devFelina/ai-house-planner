@@ -1,5 +1,5 @@
 """
-Pricing lookup tool for Cost Estimation Agent (Component C).
+Pricing lookup tool for Cost Estimation Service (Component C).
 
 Fetches current pricing data from ASP.NET Core internal API:
 GET /api/v1/internal/pricing

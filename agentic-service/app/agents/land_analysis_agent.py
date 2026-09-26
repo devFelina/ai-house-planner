@@ -11,7 +11,7 @@ import requests
 
 from app.config import ASPNET_API_URL, INTERNAL_API_KEY
 from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
-from app.tools.vision_classify_tool import vision_classify_tool
+from app.tools.vision_classification_tool import vision_classification_tool
 
 
 def land_analysis_node(state: WorkflowState) -> WorkflowState:
@@ -50,10 +50,10 @@ def land_analysis_node(state: WorkflowState) -> WorkflowState:
             success = False
             for attempt in range(2): # 1 retry
                 try:
-                    terrain_result = vision_classify_tool(photo_url)
+                    terrain_result = vision_classification_tool(photo_url)
                     state.terrain_result = terrain_result.model_dump()
                     action = f"Classified terrain as '{terrain_result.terrain_type}' (slope: {terrain_result.slope_estimate})"
-                    tool = "vision_classify_tool"
+                    tool = "vision_classification_tool"
                     success = True
                     break
                 except Exception as e:

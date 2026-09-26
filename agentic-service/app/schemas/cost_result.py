@@ -1,5 +1,5 @@
 """
-Structured result schema for the Cost Estimation Agent (Component C).
+Structured result schema for the Cost Estimation Service (Component C).
 
 Stored in WorkflowState.cost_result as a plain dict (via .model_dump()) so that
 the WorkflowState type annotation (Dict[str, Any]) is preserved without modification.
@@ -27,7 +27,7 @@ class CostBreakdownLine(BaseModel):
 
 class CostResult(BaseModel):
     """
-    Deterministic cost breakdown produced by the Cost Estimation Agent.
+    Deterministic cost breakdown produced by the Cost Estimation Service.
 
     All monetary values are in Sri Lankan Rupees (LKR).
     budget_delta_percent expresses total_cost as a percentage of the submitted budget

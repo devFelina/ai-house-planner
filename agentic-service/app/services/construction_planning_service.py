@@ -70,10 +70,10 @@ def construction_planning_node(state:WorkflowState)->WorkflowState:
     start_time=datetime.now(timezone.utc)
 
     if not state.design_result:
-        print(f"[Construction Planning Agent] Planning for workflow {state.workflow_id}...")
+        print(f"[Construction Planning Service] Planning for workflow {state.workflow_id}...")
         state.current_agent="cost_estimation"
         return state
-    print(f"[Construction Planning Agent] Planning for workflow {state.workflow_id}...")
+    print(f"[Construction Planning Service] Planning for workflow {state.workflow_id}...")
 
     # 1.Analyze House
     design=state.design_result
@@ -155,7 +155,7 @@ def construction_planning_node(state:WorkflowState)->WorkflowState:
         else:
             api_result=f"api_failed:{response.status_code}"
     except requests.RequestException as e:
-        print(f"[Construction Planning Agent] Could not reach ASP.NET:{e}")
+        print(f"[Construction Planning Service] Could not reach ASP.NET:{e}")
 
     duration=int((datetime.now(timezone.utc)-start_time).total_seconds()*1000)
 

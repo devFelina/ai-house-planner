@@ -1,6 +1,6 @@
 from app.agents.land_analysis_agent import land_analysis_node
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState
-from app.tools.vision_classify_tool import _parse_terrain_result, _safe_fallback
+from app.tools.vision_classification_tool import _parse_terrain_result, _safe_fallback
 
 # Mocking the vision classify tool and ASP.NET API call is standard,
 # but we can test the fallback and routing logic directly.

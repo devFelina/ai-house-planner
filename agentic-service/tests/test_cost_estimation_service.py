@@ -1,5 +1,5 @@
 """
-Unit tests for the Cost Estimation Agent (Component C).
+Unit tests for the Cost Estimation Service (Component C).
 
 All tests mock pricing_lookup_tool() so no network calls are made.
 No psycopg2 / asyncpg / sqlalchemy is imported by the agent under test.
@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from app.agents.cost_estimation_agent import (
+from app.services.cost_estimation_service import (
     _persist_cost_estimate,
     cost_estimation_node,
 )
@@ -158,16 +158,16 @@ def _make_state(
 # Patch target
 # ---------------------------------------------------------------------------
 
-PATCH_TARGET = "app.agents.cost_estimation_agent.pricing_lookup_tool"
-PERSIST_TARGET = "app.agents.cost_estimation_agent._persist_cost_estimate"
+PATCH_TARGET = "app.services.cost_estimation_service.pricing_lookup_tool"
+PERSIST_TARGET = "app.services.cost_estimation_service._persist_cost_estimate"
 
 
 @pytest.fixture(autouse=True)
 def mock_cost_persistence():
     """Keep unit tests offline while asserting persistence separately."""
     with patch(PERSIST_TARGET) as mock_persist, \
-         patch("app.agents.cost_estimation_agent._record_run"), \
-         patch("app.agents.cost_estimation_agent._persist_failure"):
+         patch("app.services.cost_estimation_service._record_run"), \
+         patch("app.services.cost_estimation_service._persist_failure"):
         yield mock_persist
 
 
@@ -200,8 +200,8 @@ def test_persistence_posts_expected_contract():
     )
 
     with (
-        patch("app.agents.cost_estimation_agent.ASPNET_API_URL", "https://api.example/api/v1"),
-        patch("app.agents.cost_estimation_agent.INTERNAL_API_KEY", "test-key"),
+        patch("app.services.cost_estimation_service.ASPNET_API_URL", "https://api.example/api/v1"),
+        patch("app.services.cost_estimation_service.INTERNAL_API_KEY", "test-key"),
     ):
         _persist_cost_estimate(state, result)
 
@@ -593,13 +593,13 @@ def test_no_direct_database_access_in_agent():
     The agent module must NOT import any direct database library.
     Prices must be obtained solely through pricing_lookup_tool().
     """
-    import app.agents.cost_estimation_agent as agent_module
+    import app.services.cost_estimation_service as agent_module
 
     source = inspect.getsource(agent_module)
     forbidden = ["psycopg2", "psycopg", "asyncpg", "sqlalchemy", "aiopg", "databases"]
     for lib in forbidden:
         assert lib not in source, (
-            f"Direct database import '{lib}' found in cost_estimation_agent.py. "
+            f"Direct database import '{lib}' found in cost_estimation_service.py. "
             "All pricing data must be fetched via pricing_lookup_tool()."
         )
 
