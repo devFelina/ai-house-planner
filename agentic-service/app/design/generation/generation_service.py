@@ -16,7 +16,7 @@ from app.design.catalogue.base_plan_library import (
     load_base_plan_catalog,
     rank_base_plans,
 )
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation.diversity import geometry_fingerprint
 from app.design.program.models import Requirements
 from app.design.program.normalized_input import NormalizedDesignInput

@@ -7,7 +7,7 @@ import pytest
 from app.agents.design_agent import _safe_failure_reason, design_node
 from app.design.quality.architectural_quality import validate_architectural_quality
 from app.design.catalogue.base_plan_library import BasePlanRecord
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.program.models import Connection, Entrance
 from app.schemas.design_result import DesignResult, RoomLayout
 from app.schemas.workflow_state import CoordinatorInput, WorkflowState

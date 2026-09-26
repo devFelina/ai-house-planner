@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks
 
 from app.agents import design_agent
 from app.design.catalogue import base_plan_library as library
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation.revision import preserve_revision_preferences
 from app.design.program.room_counts import count_bathrooms
 from app.main import ResumeWorkflowRequest, resume_workflow

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation import generation_service as generation
 
 PREFERENCES = {'bedrooms': 4, 'bathrooms': 2, 'floors': 2, 'style': 'modern'}

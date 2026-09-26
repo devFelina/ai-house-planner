@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation import generation_service as tool
 
 

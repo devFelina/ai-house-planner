@@ -11,7 +11,7 @@ import requests
 
 from app.config import ASPNET_API_URL, INTERNAL_API_KEY
 from app.design.quality.architectural_quality import validate_architectural_quality
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation.revision import preserve_revision_preferences
 from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
 from app.validation.geometry_validator import validate_geometry

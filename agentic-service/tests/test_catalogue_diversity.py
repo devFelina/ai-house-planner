@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.design.catalogue.base_plan_library import load_base_plan_catalog
-from app.design.generation.candidate_generator import GenerationFailure
+from app.design.exceptions import GenerationFailure
 from app.design.generation.diversity import geometry_fingerprint
 from app.design.generation.plan_adapter import PlanAdapter, transform_design
 from app.schemas.design_result import DesignResult

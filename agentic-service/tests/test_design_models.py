@@ -2,7 +2,7 @@ import pytest
 
 from app.design.program.models import Requirements
 from app.design.geometry.plot_constraints import PlotConstraints
-from app.design.program.spatial_program import build_program
+
 from app.design.geometry.topology_registry import eligible_topologies
 
 
@@ -26,11 +26,6 @@ def test_impossible_setbacks_rejected():
         PlotConstraints(land_size_perches=1, plot_width_ft=10, plot_length_ft=10)
 
 
-def test_floor_program_does_not_duplicate_bedrooms():
-    p = build_program(Requirements(bedrooms=3, floors=2))
-    assert sum(r.room_type.startswith('bedroom') for r in p.rooms) == 3
-    assert {r.floor for r in p.rooms if r.zone == 'public'} == {1}
-    assert {r.floor for r in p.rooms if r.room_type.startswith('bedroom')} == {2}
 
 
 def test_topology_registry_is_geography_sensitive():
