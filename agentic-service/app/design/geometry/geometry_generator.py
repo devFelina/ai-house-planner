@@ -350,5 +350,11 @@ def generate_geometry(program: SpatialProgram, plot: PlotConstraints) -> tuple[D
     start_ms = time.time() * 1000
     solver = LayoutSolver(program, plot)
     res, meta = solver.generate()
+    
+    from app.design.geometry.finishing import finish_generative_layout
+    open_plan = any('open_plan' in m for m in program.notes) if hasattr(program, 'notes') else False
+    res, fin_meta = finish_generative_layout(res, program, open_plan=open_plan)
+    meta.update(fin_meta)
+    
     meta["generation_ms"] = int((time.time() * 1000) - start_ms)
     return res, meta
