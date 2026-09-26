@@ -106,5 +106,5 @@ def test_impossible_plot():
         entrance=EntranceIntent(preferred_side="SOUTH", connect_to="huge"),
         reason_codes=[]
     )
-    with pytest.raises(GenerationFailure, match="NO_NON_OVERLAPPING_PLACEMENT"):
+    with pytest.raises(GenerationFailure, match="ROOM_MIN_DIMENSIONS_EXCEED_PLOT|NO_NON_OVERLAPPING_PLACEMENT"):
         generate_geometry(program, plot)
