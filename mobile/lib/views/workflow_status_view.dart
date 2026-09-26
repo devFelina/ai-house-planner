@@ -490,6 +490,7 @@ class _WorkflowStatusViewState extends ConsumerState<WorkflowStatusView> {
     final summary = plan['project_summary'] as Map<String, dynamic>?;
     final totalDays = summary?['estimated_duration_days'] ?? 0;
     final months = (totalDays / 30).toStringAsFixed(1);
+    final targetDuration = summary?['target_duration_days'];
     final terrainType = summary?['terrain_type'] ?? 'flat';
     final optimizationNotes = summary?['optimization_notes'] as String?;
 
@@ -570,12 +571,12 @@ class _WorkflowStatusViewState extends ConsumerState<WorkflowStatusView> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTokens.line),
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('TARGET DURATION', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppTokens.inkMute)),
-                          SizedBox(height: 6),
-                          Text('Not Provided', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.ink)),
+                          const Text('TARGET DURATION', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppTokens.inkMute)),
+                          const SizedBox(height: 6),
+                          Text(targetDuration != null ? '$targetDuration days' : 'Not Provided', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.ink)),
                         ],
                       ),
                     ),

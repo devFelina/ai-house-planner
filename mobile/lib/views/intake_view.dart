@@ -216,7 +216,7 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Plot Width (ft)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.inkSoft)),
+                              const Text('Plot Width (ft) (Optional)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.inkSoft)),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 hint: 'e.g. 50',
@@ -239,7 +239,7 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Plot Length (ft)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.inkSoft)),
+                              const Text('Plot Length (ft) (Optional)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.inkSoft)),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 hint: 'e.g. 100',
@@ -278,6 +278,10 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
                       validator: (val) => null,
                       onSaved: (val) => ref.read(intakeProvider.notifier).updateField(plotSetbacks: val),
                     ),
+                    const SizedBox(height: 16),
+                    const Text('Target Completion Date (Optional)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.inkSoft)),
+                    const SizedBox(height: 8),
+                    _buildDatePicker(context, data.targetCompletionDate),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -594,6 +598,45 @@ class _IntakeViewState extends ConsumerState<IntakeView>{
         ),
         validator: validator,
         onSaved: onSaved,
+      ),
+    );
+  }
+
+  Widget _buildDatePicker(BuildContext context, String? currentDate) {
+    return InkWell(
+      onTap: () async {
+        final DateTime? picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now().add(const Duration(days: 1)),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 3650)),
+        );
+        if (picked != null) {
+          ref.read(intakeProvider.notifier).updateField(
+            targetCompletionDate: "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}",
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F2F4),
+          borderRadius: BorderRadius.circular(AppTokens.radiusField),
+          border: Border.all(color: AppTokens.line),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              currentDate ?? 'Select a future date',
+              style: TextStyle(
+                fontSize: 14.5,
+                color: currentDate != null ? AppTokens.ink : AppTokens.inkMute,
+              ),
+            ),
+            const Icon(Icons.calendar_today, color: AppTokens.inkMute, size: 20),
+          ],
+        ),
       ),
     );
   }
