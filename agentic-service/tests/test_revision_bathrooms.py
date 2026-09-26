@@ -10,7 +10,7 @@ from app.design.catalogue import base_plan_library as library
 from app.design.exceptions import GenerationFailure
 from app.design.generation.revision import preserve_revision_preferences
 from app.design.program.room_counts import count_bathrooms
-from app.main import ResumeWorkflowRequest, resume_workflow
+from app.api.routers.workflow_routes import ResumeWorkflowRequest, resume_workflow
 from app.schemas.design_result import DesignResult
 from app.design.generation import generation_service as generation
 
