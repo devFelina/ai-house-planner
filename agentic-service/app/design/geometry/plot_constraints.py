@@ -76,6 +76,9 @@ class PlotConstraints(BaseModel):
         self.plot_length_ft = round(self.plot_length_ft, 1)
 
         if self.buildable_width <= 0 or self.buildable_length <= 0:
+            if self.dimension_source == 'user_supplied':
+                raise ValueError('Setbacks/reserved parking leave no buildable rectangle.')
+
             # Try reducing setbacks to make it buildable
             min_w = min(5.0, self.plot_width_ft * 0.2)
             min_l = min(5.0, self.plot_length_ft * 0.2)
