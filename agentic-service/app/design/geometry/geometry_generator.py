@@ -1,12 +1,13 @@
-import time
 from typing import Any
-from pydantic import BaseModel
 from app.design.geometry.plot_constraints import PlotConstraints
 from app.design.program.spatial_program import SpatialProgram
 from app.schemas.design_result import DesignResult, RoomLayout
 from app.design.exceptions import GenerationFailure
 from app.validation.geometry_validator import validate_geometry
 from app.design.program.room_rules import rule_for
+
+MAX_PLACEMENT_EVALUATIONS = 350_000
+
 
 def _normalize_room_type(gpt_type: str) -> str:
     t = gpt_type.lower().replace(' ', '_')
@@ -28,7 +29,8 @@ class PlacedRoom:
         self.target_area = target_area
 
 class LayoutSolver:
-    def __init__(self, program, plot):
+    def __init__(self, program, plot, candidate_rank=0):
+        self.candidate_rank = candidate_rank
         self.program = program
         self.plot = plot
         self.env_w = plot.buildable_width
@@ -50,7 +52,7 @@ class LayoutSolver:
         for r in self.program.rooms:
             norm_type = _normalize_room_type(r.type)
             rule = rule_for(norm_type)
-            safe_target = max(r.target_area_sqft, rule.min_width * rule.min_length)
+            safe_target = max(r.target_area_sqft, r.min_area_sqft, rule.min_width * rule.min_length)
             
             if rule.min_width > self.env_w or rule.min_length > self.env_l:
                 raise GenerationFailure("ROOM_MIN_DIMENSIONS_EXCEED_PLOT")
@@ -199,6 +201,8 @@ class LayoutSolver:
                 y = offset_y
                 while y + cand_l <= offset_y + bound_l + 0.01:
                     self.global_evals += 1
+                    if self.global_evals > MAX_PLACEMENT_EVALUATIONS:
+                        raise GenerationFailure("PLACEMENT_EVALUATION_LIMIT_EXCEEDED")
                     
                     overlap = False
                     shared_wall = False if placed else True
@@ -292,23 +296,27 @@ class LayoutSolver:
                 x += 1.0
                 
         placements.sort(key=lambda item: item[0])
+        if placements and self.candidate_rank:
+            rank = min(self.candidate_rank, len(placements)-1)
+            placements = placements[rank:rank+1] + placements[:rank] + placements[rank+1:]
         return placements
 
-    def _build_result(self, placed: list[PlacedRoom]):
+    def _build_result(self, placed: list[PlacedRoom], *, validate=True):
+        from app.design.geometry.geometry_engine import TERRAIN_FOUNDATION_MAP
         result = DesignResult(
             floor_count=self.program.floor_count,
-            foundation_type="slab",
-            terrain_type="flat"
+            foundation_type=TERRAIN_FOUNDATION_MAP[self.plot.terrain_type],
+            terrain_type=self.plot.terrain_type
         )
         for p in placed:
             result.rooms.append(RoomLayout(
                 room_id=p.id,
                 room_type=p.type,
                 floor=p.floor,
-                x=round(p.x, 2),
-                y=round(p.y, 2),
-                width=round(p.width, 2),
-                length=round(p.length, 2)
+                x=round(p.x, 6),
+                y=round(p.y, 6),
+                width=round(p.width, 6),
+                length=round(p.length, 6)
             ))
             
         actual_area = sum(r.width * r.length for r in result.rooms)
@@ -324,7 +332,7 @@ class LayoutSolver:
             plot=self.plot,
             design=None
         )
-        if not val_result.passed:
+        if validate and not val_result.passed:
             raise GenerationFailure(f"GEOMETRY_VALIDATION_FAILED: {val_result.failures[0]}")
             
         meta = {
@@ -347,14 +355,6 @@ class LayoutSolver:
         return result, meta
 
 def generate_geometry(program: SpatialProgram, plot: PlotConstraints) -> tuple[DesignResult, dict[str, Any]]:
-    start_ms = time.time() * 1000
-    solver = LayoutSolver(program, plot)
-    res, meta = solver.generate()
-    
-    from app.design.geometry.finishing import finish_generative_layout
-    open_plan = any('open_plan' in m for m in program.notes) if hasattr(program, 'notes') else False
-    res, fin_meta = finish_generative_layout(res, program, open_plan=open_plan)
-    meta.update(fin_meta)
-    
-    meta["generation_ms"] = int((time.time() * 1000) - start_ms)
-    return res, meta
+    """Return only a finished, fully certified high-quality candidate."""
+    from app.design.geometry.quality_search import generate_quality_geometry
+    return generate_quality_geometry(program, plot)

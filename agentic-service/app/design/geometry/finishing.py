@@ -7,7 +7,7 @@ from app.design.program.spatial_program import SpatialProgram
 from app.design.program.models import Connection, Entrance
 from app.design.program.room_rules import room_kind
 
-def finish_generative_layout(design: DesignResult, program: SpatialProgram, open_plan: bool = False) -> tuple[DesignResult, dict]:
+def finish_generative_layout(design: DesignResult, program: SpatialProgram, open_plan: bool = False, *, privacy_safe: bool = False) -> tuple[DesignResult, dict]:
     t0 = time.time()
     for r in design.rooms:
         r.doors = []
@@ -56,7 +56,7 @@ def finish_generative_layout(design: DesignResult, program: SpatialProgram, open
 
     # 2. Circulation connectivity
     # Ensure all rooms connect to circulation (hallway, entrance, foyer, staircase, living_room, dining)
-    circulation_nodes = {r.room_id for r in design.rooms if room_kind(r.room_type) in ['hallway', 'staircase', 'foyer', 'entrance', 'living_room', 'dining']}
+    circulation_nodes = {r.room_id for r in design.rooms if room_kind(r.room_type) in ['hallway', 'staircase', 'foyer', 'entrance', 'living_room', 'dining', 'family_lounge']}
     
     def add_door(a_id, b_id):
         if a_id > b_id: a_id, b_id = b_id, a_id
@@ -65,13 +65,13 @@ def finish_generative_layout(design: DesignResult, program: SpatialProgram, open
     for r in design.rooms:
         if r.room_id in circulation_nodes:
             # Connect circulation nodes to each other if they share a wall
-            for c in circulation_nodes:
+            for c in sorted(circulation_nodes):
                 if c != r.room_id and (r.room_id, c) in possible_walls:
                     add_door(r.room_id, c)
         else:
             # Try to connect to a circulation node
             connected = False
-            for c in circulation_nodes:
+            for c in sorted(circulation_nodes):
                 if (r.room_id, c) in possible_walls:
                     add_door(r.room_id, c)
                     connected = True
@@ -84,6 +84,28 @@ def finish_generative_layout(design: DesignResult, program: SpatialProgram, open
                         connected = True
                         break
 
+    if privacy_safe:
+        # A private room terminates a branch; only an explicitly attached bath
+        # may connect through its designated bedroom. Geometry search must make
+        # the necessary shared walls before finishing reaches this point.
+        by_id = {r.room_id: r for r in design.rooms}
+        safe = set()
+        for a, b in sorted(doors_to_add):
+            ak, bk = room_kind(by_id[a].room_type), room_kind(by_id[b].room_type)
+            private = {'bedroom', 'bathroom', 'home_office'}
+            ensuite = {by_id[a].room_type, by_id[b].room_type} == {'bedroom_1', 'bathroom_attached'}
+            independent = all(any((node, c) in possible_walls for c in circulation_nodes) for node in (a, b))
+            if ak in private and bk in private and not (ensuite or independent):
+                continue
+            if {ak, bk} & {'bedroom'} and {ak, bk} & {'living_room', 'kitchen'}:
+                continue
+            safe.add((a, b))
+        doors_to_add = safe
+        requested = {tuple(sorted((a.room_a, a.room_b))) for a in program.adjacencies
+                     if a.relationship == 'ADJACENT' and a.priority == 'HIGH'}
+        meta['high_adjacencies_satisfied'] = sorted(requested & doors_to_add)
+        meta['high_adjacencies_unsatisfied'] = sorted(requested - doors_to_add)
+
     # 3. Vertical Core / Stairs
     stairs = {r.floor: r for r in design.rooms if room_kind(r.room_type) == 'staircase'}
     for floor, stair in stairs.items():
@@ -92,7 +114,7 @@ def finish_generative_layout(design: DesignResult, program: SpatialProgram, open
 
     # Add doors physically
     by_id = {r.room_id: r for r in design.rooms}
-    for a_id, b_id in doors_to_add:
+    for a_id, b_id in sorted(doors_to_add):
         a, b = by_id[a_id], by_id[b_id]
         res = possible_walls.get((a_id, b_id))
         if not res: continue

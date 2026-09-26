@@ -1,7 +1,8 @@
+# Low-level placement/structural tests remain independent of the quality gate.
 import pytest
 from app.design.geometry.plot_constraints import PlotConstraints
 from app.design.program.spatial_program import SpatialProgram, RoomIntent, AdjacencyIntent, EntranceIntent, VerticalCoreIntent
-from app.design.geometry.geometry_generator import generate_geometry
+from app.design.geometry.geometry_generator import generate_geometry, LayoutSolver
 from app.design.exceptions import GenerationFailure
 from app.validation.geometry_validator import validate_geometry
 
@@ -33,7 +34,7 @@ def test_simple_2_floor():
         vertical_core=VerticalCoreIntent(stair_position="CENTER", align_service_zones=True),
         reason_codes=[]
     )
-    result, meta = generate_geometry(program, plot)
+    result, meta = LayoutSolver(program, plot).generate()
     
     assert result.floor_count == 2
     f1_rooms = [r for r in result.rooms if r.floor == 1]
@@ -63,7 +64,10 @@ def test_realistic_4b3b():
         reason_codes=[]
     )
     result, meta = generate_geometry(program, plot)
-    assert meta["rooms_placed"] == 12 # 10 + 2 stairs
+    assert len([r for r in result.rooms if 'bedroom' in r.room_type]) == 4
+    assert len([r for r in result.rooms if r.room_type == 'bathroom']) == 3
+    assert result.candidate_status == 'VALID_HIGH_QUALITY'
+    assert validate_geometry(result.rooms, 4, 2, plot.land_size_perches, plot=plot, design=result).passed
 
 def test_stair_alignment_fails_if_offset():
     # If we artificially move the stair on floor 2, validation must fail
@@ -81,7 +85,7 @@ def test_stair_alignment_fails_if_offset():
         vertical_core=VerticalCoreIntent(stair_position="CENTER", align_service_zones=True),
         reason_codes=[]
     )
-    result, meta = generate_geometry(program, plot)
+    result, meta = LayoutSolver(program, plot).generate()
     
     # offset stair 2
     for r in result.rooms:
@@ -114,7 +118,7 @@ def test_upper_support_fails_if_floating():
         vertical_core=VerticalCoreIntent(stair_position="CENTER", align_service_zones=True),
         reason_codes=[]
     )
-    result, meta = generate_geometry(program, plot)
+    result, meta = LayoutSolver(program, plot).generate()
     
     # float a bedroom
     for r in result.rooms:
@@ -148,7 +152,7 @@ def test_service_alignment():
         vertical_core=VerticalCoreIntent(stair_position="CENTER", align_service_zones=True),
         reason_codes=[]
     )
-    res1, meta1 = generate_geometry(program, plot)
+    res1, meta1 = LayoutSolver(program, plot).generate()
     assert res1.floor_count == 2
 
 def test_impossible_core():

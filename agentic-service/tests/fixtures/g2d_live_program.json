@@ -1,0 +1,221 @@
+{
+  "program": {
+    "concept": "A two-story conventional house with a balanced space distribution, prioritizing efficient circulation and a separate dining area, without a master bedroom or home office.",
+    "floor_count": 2,
+    "rooms": [
+      {
+        "id": "living_room",
+        "type": "Living Room",
+        "floor": 1,
+        "zone": "PUBLIC",
+        "target_area_sqft": 400,
+        "min_area_sqft": 350,
+        "preferred_position": "FRONT",
+        "exterior_wall_required": true,
+        "privacy_level": "LOW"
+      },
+      {
+        "id": "dining_room",
+        "type": "Dining Room",
+        "floor": 1,
+        "zone": "PUBLIC",
+        "target_area_sqft": 200,
+        "min_area_sqft": 150,
+        "preferred_position": "CENTER",
+        "exterior_wall_required": false,
+        "privacy_level": "MEDIUM"
+      },
+      {
+        "id": "kitchen",
+        "type": "Kitchen",
+        "floor": 1,
+        "zone": "SERVICE",
+        "target_area_sqft": 250,
+        "min_area_sqft": 200,
+        "preferred_position": "REAR",
+        "exterior_wall_required": true,
+        "privacy_level": "MEDIUM"
+      },
+      {
+        "id": "bedroom_1",
+        "type": "Bedroom",
+        "floor": 1,
+        "zone": "PRIVATE",
+        "target_area_sqft": 180,
+        "min_area_sqft": 150,
+        "preferred_position": "REAR_RIGHT",
+        "exterior_wall_required": true,
+        "privacy_level": "HIGH"
+      },
+      {
+        "id": "bathroom_1",
+        "type": "Bathroom",
+        "floor": 1,
+        "zone": "SERVICE",
+        "target_area_sqft": 80,
+        "min_area_sqft": 60,
+        "preferred_position": "REAR",
+        "exterior_wall_required": false,
+        "privacy_level": "MEDIUM"
+      },
+      {
+        "id": "bedroom_2",
+        "type": "Bedroom",
+        "floor": 2,
+        "zone": "PRIVATE",
+        "target_area_sqft": 180,
+        "min_area_sqft": 150,
+        "preferred_position": "FRONT_LEFT",
+        "exterior_wall_required": true,
+        "privacy_level": "HIGH"
+      },
+      {
+        "id": "bedroom_3",
+        "type": "Bedroom",
+        "floor": 2,
+        "zone": "PRIVATE",
+        "target_area_sqft": 180,
+        "min_area_sqft": 150,
+        "preferred_position": "FRONT_RIGHT",
+        "exterior_wall_required": true,
+        "privacy_level": "HIGH"
+      },
+      {
+        "id": "bedroom_4",
+        "type": "Bedroom",
+        "floor": 2,
+        "zone": "PRIVATE",
+        "target_area_sqft": 180,
+        "min_area_sqft": 150,
+        "preferred_position": "REAR_LEFT",
+        "exterior_wall_required": true,
+        "privacy_level": "HIGH"
+      },
+      {
+        "id": "bathroom_2",
+        "type": "Bathroom",
+        "floor": 2,
+        "zone": "SERVICE",
+        "target_area_sqft": 80,
+        "min_area_sqft": 60,
+        "preferred_position": "CENTER",
+        "exterior_wall_required": false,
+        "privacy_level": "MEDIUM"
+      },
+      {
+        "id": "bathroom_3",
+        "type": "Bathroom",
+        "floor": 2,
+        "zone": "SERVICE",
+        "target_area_sqft": 80,
+        "min_area_sqft": 60,
+        "preferred_position": "REAR_RIGHT",
+        "exterior_wall_required": false,
+        "privacy_level": "MEDIUM"
+      }
+    ],
+    "adjacencies": [
+      {
+        "room_a": "living_room",
+        "room_b": "dining_room",
+        "relationship": "NEAR",
+        "priority": "HIGH"
+      },
+      {
+        "room_a": "kitchen",
+        "room_b": "dining_room",
+        "relationship": "ADJACENT",
+        "priority": "HIGH"
+      },
+      {
+        "room_a": "bedroom_1",
+        "room_b": "bathroom_1",
+        "relationship": "ADJACENT",
+        "priority": "HIGH"
+      },
+      {
+        "room_a": "bedroom_2",
+        "room_b": "bathroom_2",
+        "relationship": "NEAR",
+        "priority": "MEDIUM"
+      },
+      {
+        "room_a": "bedroom_3",
+        "room_b": "bathroom_2",
+        "relationship": "NEAR",
+        "priority": "MEDIUM"
+      },
+      {
+        "room_a": "bedroom_4",
+        "room_b": "bathroom_3",
+        "relationship": "ADJACENT",
+        "priority": "HIGH"
+      }
+    ],
+    "entrance": {
+      "preferred_side": "SOUTH",
+      "connect_to": "living_room"
+    },
+    "vertical_core": {
+      "stair_position": "CENTER",
+      "align_service_zones": true
+    },
+    "reason_codes": [
+      "Balanced space distribution for public and private zones.",
+      "Efficient circulation with centralized stair placement.",
+      "Service zones aligned for plumbing efficiency."
+    ]
+  },
+  "plot": {
+    "land_size_perches": 20.0,
+    "plot_width_ft": 80.0,
+    "plot_length_ft": 80.0,
+    "road_side": "south",
+    "north_direction": "top",
+    "entrance_side": null,
+    "terrain_type": "flat",
+    "slope_direction": null,
+    "setbacks": {
+      "front": 10,
+      "rear": 7,
+      "left": 5,
+      "right": 5
+    },
+    "setback_source": "conceptual_default",
+    "dimension_source": "user_supplied",
+    "parking_reserved": false,
+    "design_seed": null,
+    "notable_features": [],
+    "aspect_ratio": 1.0,
+    "plot_class": "MEDIUM_COMPACT",
+    "edge_setbacks": {
+      "south": 10,
+      "north": 7,
+      "west": 5,
+      "east": 5
+    },
+    "effective_entrance_side": "south",
+    "buildable_width": 70.0,
+    "buildable_length": 63.0,
+    "buildable_polygon": [
+      [
+        0,
+        0
+      ],
+      [
+        70.0,
+        0
+      ],
+      [
+        70.0,
+        63.0
+      ],
+      [
+        0,
+        63.0
+      ]
+    ],
+    "maximum_ground_footprint": 3539.25,
+    "maximum_total_floor_area": 3539.25
+  }
+}

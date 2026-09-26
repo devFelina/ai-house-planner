@@ -1,4 +1,4 @@
-from app.design.geometry.geometry_generator import generate_geometry, _normalize_room_type
+from app.design.geometry.geometry_generator import generate_geometry, LayoutSolver, _normalize_room_type
 from app.design.geometry.plot_constraints import PlotConstraints
 from app.design.program.spatial_program import SpatialProgram, RoomIntent, AdjacencyIntent, EntranceIntent, VerticalCoreIntent
 from app.design.exceptions import GenerationFailure
@@ -31,8 +31,9 @@ def test_simple_rectangular_case():
     )
     
     result, meta = generate_geometry(program, plot)
-    assert len(result.rooms) == 5
-    assert meta["rooms_placed"] == 5
+    assert {r.id for r in program.rooms} <= {r.room_id for r in result.rooms}
+    assert result.candidate_status == "VALID_HIGH_QUALITY"
+    assert meta["rooms_placed"] == len(result.rooms)
     
     # Overlap check (should be non-overlapping)
     rooms = result.rooms
@@ -60,9 +61,9 @@ def test_realistic_3b2b():
         reason_codes=[]
     )
     
-    # Determinism check
-    res1, meta1 = generate_geometry(program, plot)
-    res2, meta2 = generate_geometry(program, plot)
+    # Placement determinism is distinct from the G2D quality gate.
+    res1, meta1 = LayoutSolver(program, plot).generate()
+    res2, meta2 = LayoutSolver(program, plot).generate()
     
     for r1, r2 in zip(res1.rooms, res2.rooms):
         assert r1.x == r2.x

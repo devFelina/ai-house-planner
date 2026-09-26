@@ -77,3 +77,11 @@ mobile/windows/flutter/ephemeral/
 *.user
 *.userosscache
 *.sln.docstates
+
+# Local G2D/G2E development scratch files
+agentic-service/fix_ideal.py
+agentic-service/scratch/geometry_generator_temp.py
+agentic-service/scratch/print_doors.py
+agentic-service/scratch/print_rooms.py
+agentic-service/scratch/reproduce_4b3b.py
+agentic-service/scratch/test_runner.py
