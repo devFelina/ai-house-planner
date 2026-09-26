@@ -76,7 +76,28 @@ class PlotConstraints(BaseModel):
         self.plot_length_ft = round(self.plot_length_ft, 1)
 
         if self.buildable_width <= 0 or self.buildable_length <= 0:
-            raise ValueError('Setbacks/reserved parking leave no buildable rectangle.')
+            if self.dimension_source == 'user_supplied':
+                raise ValueError('Setbacks/reserved parking leave no buildable rectangle.')
+
+            # Try reducing setbacks to make it buildable
+            min_w = min(5.0, self.plot_width_ft * 0.2)
+            min_l = min(5.0, self.plot_length_ft * 0.2)
+            
+            w_setbacks = self.edge_setbacks['west'] + self.edge_setbacks['east']
+            if w_setbacks > 0 and self.plot_width_ft - w_setbacks <= 0:
+                scale = max(0, (self.plot_width_ft - min_w) / w_setbacks)
+                self.setbacks.left *= scale
+                self.setbacks.right *= scale
+
+            l_setbacks = self.edge_setbacks['south'] + self.edge_setbacks['north']
+            if l_setbacks > 0 and self.plot_length_ft - l_setbacks <= 0:
+                scale = max(0, (self.plot_length_ft - min_l) / l_setbacks)
+                self.setbacks.front *= scale
+                self.setbacks.rear *= scale
+
+            if self.buildable_width <= 0 or self.buildable_length <= 0:
+                raise ValueError('Setbacks/reserved parking leave no buildable rectangle.')
+                
         return self
 
     @computed_field
