@@ -42,7 +42,7 @@ class ModelProvider(ABC):
         """Name of the model being used (e.g., 'gpt-4o', 'qwen3:8b')."""
 
     @abstractmethod
-    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel]) -> dict[str, Any]:
+    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel], max_tokens: int | None = None) -> dict[str, Any]:
         """
         Generate a structured JSON response from the LLM.
 

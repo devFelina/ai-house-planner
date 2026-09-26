@@ -29,7 +29,7 @@ class OpenAIProvider(ModelProvider):
     def health_check(self) -> bool:
         return bool(OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"))
 
-    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel]) -> dict[str, Any]:
+    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel], max_tokens: int | None = None) -> dict[str, Any]:
         if not self.health_check():
             raise ProviderUnavailableError("OpenAI API key is missing or invalid.")
 
@@ -49,7 +49,7 @@ class OpenAIProvider(ModelProvider):
 
         payload = {
             "model": self.model_name,
-            "max_tokens": 800,  # Strategy schema is tiny, but FinalResponse might need more space
+            "max_tokens": max_tokens or 800,  # Strategy schema is tiny, but FinalResponse might need more space
             "temperature": 0.2,
             "response_format": {
                 "type": "json_schema",

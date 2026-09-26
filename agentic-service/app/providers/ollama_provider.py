@@ -38,7 +38,7 @@ class OllamaProvider(ModelProvider):
         except requests.RequestException:
             return False
 
-    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel]) -> dict[str, Any]:
+    def generate_json(self, system_prompt: str, user_prompt: str, schema: type[BaseModel], max_tokens: int | None = None) -> dict[str, Any]:
         url = f"{OLLAMA_BASE_URL.rstrip('/')}/api/chat"
 
         schema_str = json.dumps(schema.model_json_schema())
@@ -48,7 +48,8 @@ class OllamaProvider(ModelProvider):
             "model": self.model_name,
             "format": "json",
             "options": {
-                "temperature": 0.2
+                "temperature": 0.2,
+                **({"num_predict": max_tokens} if max_tokens else {})
             },
             "messages": [
                 {"role": "system", "content": system_instruction},
