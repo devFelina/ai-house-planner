@@ -2,16 +2,49 @@ import os
 
 
 def load_dotenv():
-    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-    if not os.path.exists(env_path):
-        return
-    with open(env_path) as f:
-        for line in f:
-            if line.strip() and not line.startswith("#"):
-                key, val = line.strip().split("=", 1)
-                os.environ[key.strip()] = val.strip().strip('"\'')
+    env_paths = [
+        os.path.join(os.path.dirname(__file__), "..", ".env"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "HousePlanner.API", ".env"),
+    ]
+    for env_path in env_paths:
+        if not os.path.exists(env_path):
+            continue
+        with open(env_path) as f:
+            for line in f:
+                if line.strip() and not line.startswith("#"):
+                    if "=" in line:
+                        key, val = line.strip().split("=", 1)
+                        # Don't overwrite if already set by an earlier .env or actual env
+                        if key.strip() not in os.environ:
+                            os.environ[key.strip()] = val.strip().strip('"\'')
 
 load_dotenv()
+
+def _dotnet_to_psycopg2(dotnet_str: str) -> str:
+    """Convert .NET-style connection string to psycopg2 DSN."""
+    parts: dict[str, str] = {}
+    for segment in dotnet_str.split(';'):
+        segment = segment.strip()
+        if '=' in segment:
+            k, v = segment.split('=', 1)
+            parts[k.strip().lower()] = v.strip()
+
+    host = parts.get('host', 'localhost')
+    port = parts.get('port', '5432')
+    dbname = parts.get('database', 'postgres')
+    user = parts.get('username', 'postgres')
+    password = parts.get('password', '')
+    sslmode = 'require' if 'require' in parts.get('ssl mode', '').lower() else 'prefer'
+
+    return f"host={host} port={port} dbname={dbname} user={user} password={password} sslmode={sslmode}"
+
+def get_db_connection_string() -> str:
+    """Build a psycopg2-compatible DSN from the .env DATABASE_CONNECTION_STRING."""
+    raw = os.getenv('DATABASE_CONNECTION_STRING', '')
+    if raw:
+        return _dotnet_to_psycopg2(raw)
+    raise RuntimeError("DATABASE_CONNECTION_STRING not found in .env or environment.")
+
 ASPNET_API_URL = os.getenv("ASPNET_API_URL", "http://localhost:5265/api/v1")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 if not INTERNAL_API_KEY:

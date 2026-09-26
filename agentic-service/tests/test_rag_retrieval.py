@@ -48,28 +48,18 @@ class FakeKnowledgeRepository:
 
 @pytest.fixture(autouse=True)
 def mock_dependencies(monkeypatch):
-    import app.knowledge.retrieval_service
-    
-    # We patch the default parameters at the module level so tests calling without args still use the fake
-    monkeypatch.setattr(app.knowledge.retrieval_service, "default_generate_embedding", fake_generate_embedding)
-    
-    # We also need to monkeypatch the inner function's instantiation of PostgresKnowledgeRepository if they don't pass it
-    original_search = app.knowledge.retrieval_service.search_architecture_knowledge
-    
-    def fake_search(query, top_k=3, category_filter=None, repository=None, generate_embedding=None):
-        if repository is None:
-            repository = FakeKnowledgeRepository()
-        if generate_embedding is None:
-            generate_embedding = fake_generate_embedding
-        return original_search(query, top_k, category_filter, repository, generate_embedding)
-        
-    monkeypatch.setattr(app.knowledge.retrieval_service, "search_architecture_knowledge", fake_search)
+    import app.knowledge.embeddings
+    monkeypatch.setattr(app.knowledge.embeddings, "generate_embedding", fake_generate_embedding)
 
-def test_ventilation_retrieves_ventilation():
+@pytest.fixture
+def fake_repo():
+    return FakeKnowledgeRepository()
+
+def test_ventilation_retrieves_ventilation(fake_repo):
     """Ventilation question should retrieve ventilation-category chunks."""
     print("\n=== TEST: Ventilation Query ===")
 
-    results = search_architecture_knowledge("How should I ventilate rooms in a tropical house?", top_k=3)
+    results = search_architecture_knowledge("How should I ventilate rooms in a tropical house?", top_k=3, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results:")
     for r in results:
         print(f"    [{r.category}] {r.title} (similarity={r.similarity})")
@@ -81,11 +71,11 @@ def test_ventilation_retrieves_ventilation():
     print("  ✓ Ventilation query correctly retrieved ventilation chunks!")
 
 
-def test_foundation_retrieves_construction():
+def test_foundation_retrieves_construction(fake_repo):
     """Foundation question should retrieve construction/foundation chunks."""
     print("\n=== TEST: Foundation Query ===")
 
-    results = search_architecture_knowledge("What comes after foundation in construction?", top_k=3)
+    results = search_architecture_knowledge("What comes after foundation in construction?", top_k=3, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results:")
     for r in results:
         print(f"    [{r.category}] {r.title} (similarity={r.similarity})")
@@ -98,11 +88,11 @@ def test_foundation_retrieves_construction():
     print("  ✓ Foundation query correctly retrieved construction chunks!")
 
 
-def test_irrelevant_no_fake_retrieval():
+def test_irrelevant_no_fake_retrieval(fake_repo):
     """Completely irrelevant query should get low-relevance or no results."""
     print("\n=== TEST: Irrelevant Query ===")
 
-    results = search_architecture_knowledge("What is the recipe for chocolate cake?", top_k=3)
+    results = search_architecture_knowledge("What is the recipe for chocolate cake?", top_k=3, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results:")
     for r in results:
         print(f"    [{r.category}] {r.title} (similarity={r.similarity})")
@@ -117,11 +107,11 @@ def test_irrelevant_no_fake_retrieval():
         print("  ✓ Irrelevant query returned no results!")
 
 
-def test_bedroom_orientation():
+def test_bedroom_orientation(fake_repo):
     """Orientation question should retrieve relevant architectural guidance."""
     print("\n=== TEST: Orientation Query ===")
 
-    results = search_architecture_knowledge("What is the best direction for bedrooms in Sri Lanka?", top_k=5)
+    results = search_architecture_knowledge("What is the best direction for bedrooms in Sri Lanka?", top_k=5, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results:")
     for r in results:
         print(f"    [{r.category}] {r.title} (similarity={r.similarity})")
@@ -140,11 +130,11 @@ def test_bedroom_orientation():
     print("  ✓ Orientation query correctly retrieved relevant architectural chunks!")
 
 
-def test_setbacks_retrieval():
+def test_setbacks_retrieval(fake_repo):
     """Setbacks question should retrieve land planning chunks."""
     print("\n=== TEST: Setbacks Query ===")
 
-    results = search_architecture_knowledge("What are the standard setback requirements?", top_k=3)
+    results = search_architecture_knowledge("What are the standard setback requirements?", top_k=3, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results:")
     for r in results:
         print(f"    [{r.category}] {r.title} (similarity={r.similarity})")
@@ -155,11 +145,11 @@ def test_setbacks_retrieval():
     print("  ✓ Setbacks query correctly retrieved land planning chunks!")
 
 
-def test_dict_format():
+def test_dict_format(fake_repo):
     """search_knowledge_as_dicts should return proper serializable dicts."""
     print("\n=== TEST: Dict Format ===")
 
-    results = search_knowledge_as_dicts("What is the minimum bedroom size for a house?", top_k=3)
+    results = search_knowledge_as_dicts("What is the minimum bedroom size for a house?", top_k=3, repository=fake_repo, generate_embedding=fake_generate_embedding)
     print(f"  Found {len(results)} results")
     
     assert len(results) > 0

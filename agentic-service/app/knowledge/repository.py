@@ -31,45 +31,10 @@ class Chunk:
     content_hash: str
 
 
-def _dotnet_to_psycopg2(dotnet_str: str) -> str:
-    """Convert .NET-style connection string to psycopg2 DSN."""
-    parts: dict[str, str] = {}
-    for segment in dotnet_str.split(';'):
-        segment = segment.strip()
-        if '=' in segment:
-            k, v = segment.split('=', 1)
-            parts[k.strip().lower()] = v.strip()
-
-    host = parts.get('host', 'localhost')
-    port = parts.get('port', '5432')
-    dbname = parts.get('database', 'postgres')
-    user = parts.get('username', 'postgres')
-    password = parts.get('password', '')
-    sslmode = 'require' if 'require' in parts.get('ssl mode', '').lower() else 'prefer'
-
-    return f"host={host} port={port} dbname={dbname} user={user} password={password} sslmode={sslmode}"
+from app.config import get_db_connection_string
 
 
-def get_db_connection_string() -> str:
-    """Build a psycopg2-compatible DSN from the .env DATABASE_CONNECTION_STRING."""
-    for env_path in [
-        os.path.join(os.path.dirname(__file__), '..', '..', '.env'),
-        os.path.join(os.path.dirname(__file__), '..', '..', '..', 'HousePlanner.API', '.env'),
-    ]:
-        if not os.path.exists(env_path):
-            continue
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('DATABASE_CONNECTION_STRING='):
-                    raw = line.split('=', 1)[1].strip().strip('"\'')
-                    return _dotnet_to_psycopg2(raw)
 
-    raw = os.getenv('DATABASE_CONNECTION_STRING', '')
-    if raw:
-        return _dotnet_to_psycopg2(raw)
-
-    raise RuntimeError("DATABASE_CONNECTION_STRING not found in .env or environment.")
 
 
 class PostgresKnowledgeRepository:
