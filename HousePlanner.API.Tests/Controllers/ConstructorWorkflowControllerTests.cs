@@ -715,14 +715,14 @@ public partial class ConstructorWorkflowControllerTests
         }
 
         private Project SetupProjectWithPhase(string status, int aiDuration = 7, int plannedDuration = 7)
+    {
+        var constructorId = Guid.NewGuid();
+        var project = new Project
         {
-            var constructorId = Guid.NewGuid();
-            var project = new Project
-            {
-                Id = Guid.NewGuid(),
-                Status = "Active",
-                ContractorId = constructorId,
-                ConstructionPhases = new List<ConstructionPhase>
+            Id = Guid.NewGuid(),
+            Status = "Active",
+            ContractorId = constructorId,
+            ConstructionPhases = new List<ConstructionPhase>
                 {
                     new ConstructionPhase
                     {
@@ -735,10 +735,10 @@ public partial class ConstructorWorkflowControllerTests
                         PlannedStartDate = DateOnly.FromDateTime(DateTime.UtcNow)
                     }
                 }
-            };
-            _context.Projects.Add(project);
-            _context.SaveChanges();
-            return project;
-        }
+        };
+        _context.Projects.Add(project);
+        _context.SaveChanges();
+        return project;
     }
+}
 }
