@@ -31,6 +31,7 @@ interface IntakeFormData {
  utilityRoom: boolean;
  parkingRequired: boolean;
  accessibility: boolean;
+ targetDate: string;
 }
 
 const IntakeForm: React.FC = () => {
@@ -63,6 +64,7 @@ const IntakeForm: React.FC = () => {
   utilityRoom: prefill.utility_room || false,
   parkingRequired: prefill.parking_spaces ? true : false, 
   accessibility: prefill.accessible_friendly || false,
+  targetDate: '',
  });
 
  const [currentStep, setCurrentStep] = useState(1);
@@ -239,7 +241,8 @@ const IntakeForm: React.FC = () => {
      utilityRoom: formData.utilityRoom,
      parkingRequired: formData.parkingRequired,
      accessibility: formData.accessibility,
-     circulationPreference: 'space_efficient'
+     circulationPreference: 'space_efficient',
+     ...(formData.targetDate ? { targetCompletionDate: formData.targetDate } : {})
     }
    };
 
@@ -374,11 +377,11 @@ const IntakeForm: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
          <div>
-          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Plot Width (ft)</label>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Plot Width (ft) (Optional)</label>
           <input type="number" name="plotWidth" value={formData.plotWidth} onChange={handleInputChange} className="w-full bg-gray-50 bg-surface-elevated border border-border rounded-xl px-4 py-3 text-gray-900 dark:text-text-primary focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
          </div>
          <div>
-          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Plot Length (ft)</label>
+          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Plot Length (ft) (Optional)</label>
           <input type="number" name="plotLength" value={formData.plotLength} onChange={handleInputChange} className="w-full bg-gray-50 bg-surface-elevated border border-border rounded-xl px-4 py-3 text-gray-900 dark:text-text-primary focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional" />
          </div>
         </div>
@@ -422,6 +425,11 @@ const IntakeForm: React.FC = () => {
            </motion.div>
           )}
          </AnimatePresence>
+        </div>
+
+        <div>
+         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Target Completion Date (Optional)</label>
+         <input type="date" name="targetDate" value={formData.targetDate} onChange={handleInputChange} className="w-full sm:w-1/2 bg-gray-50 bg-surface-elevated border border-border rounded-xl px-4 py-3 text-gray-900 dark:text-text-primary focus:ring-2 focus:ring-blue-500 outline-none" min={new Date().toISOString().split('T')[0]} />
         </div>
        </motion.div>
       )}
