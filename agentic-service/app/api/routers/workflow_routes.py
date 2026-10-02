@@ -1,4 +1,5 @@
 from typing import Any
+from threading import Lock
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Security
@@ -11,6 +12,8 @@ from app.schemas.workflow_plan import create_default_house_planning_plan, PlanSt
 from app.workflows.house_planning_graph import app_graph
 
 router = APIRouter()
+_running_workflows: set[str] = set()
+_running_workflows_lock = Lock()
 
 class StartWorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -43,8 +46,30 @@ class ResumeWorkflowRequest(BaseModel):
 
 def execute_workflow(initial_state: WorkflowState):
     """Background task to run the LangGraph workflow"""
-    print(f"Starting workflow execution for {initial_state.workflow_id}")
-    app_graph.invoke(initial_state)
+    workflow_id = str(initial_state.workflow_id)
+    try:
+        print(f"Starting workflow execution for {workflow_id}")
+        app_graph.invoke(initial_state)
+    finally:
+        with _running_workflows_lock:
+            _running_workflows.discard(workflow_id)
+
+
+def _schedule_workflow(background_tasks: BackgroundTasks, state: WorkflowState) -> bool:
+    workflow_id = str(state.workflow_id)
+    with _running_workflows_lock:
+        if workflow_id in _running_workflows:
+            print(f"[Workflow Guard] Duplicate generation ignored for workflow {workflow_id}")
+            return False
+        _running_workflows.add(workflow_id)
+
+    try:
+        background_tasks.add_task(execute_workflow, state)
+    except Exception:
+        with _running_workflows_lock:
+            _running_workflows.discard(workflow_id)
+        raise
+    return True
 
 @router.post("/workflows/start")
 def start_workflow(
@@ -63,11 +88,12 @@ def start_workflow(
     )
 
     #To make the LangGraph response quicker it is passed to a background task so the API responds to ASP.NET Core immediately
-    background_tasks.add_task(execute_workflow, initial_state)
+    scheduled = _schedule_workflow(background_tasks, initial_state)
 
     return{
-        "message":"Workflow started successfully",
-        "workflow_id":str(request.workflow_id)
+        "message":"Workflow started successfully" if scheduled else "Workflow already running",
+        "workflow_id":str(request.workflow_id),
+        "duplicate": not scheduled,
     }
 
 @router.post("/workflows/resume")
@@ -132,5 +158,9 @@ def resume_workflow(
         current_step_id=current_step_id,
     )
     
-    background_tasks.add_task(execute_workflow, state)
-    return {"message": "Workflow resumed successfully", "workflow_id": str(request.workflow_id)}
+    scheduled = _schedule_workflow(background_tasks, state)
+    return {
+        "message": "Workflow resumed successfully" if scheduled else "Workflow already running",
+        "workflow_id": str(request.workflow_id),
+        "duplicate": not scheduled,
+    }

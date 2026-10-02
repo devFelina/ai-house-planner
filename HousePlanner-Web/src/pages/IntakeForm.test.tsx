@@ -34,3 +34,23 @@ test('submits the five-field simplified payload', async () => {
   await waitFor(() => expect(startDesign).toHaveBeenCalledOnce());
   expect(startDesign).toHaveBeenCalledWith({ landSizeCategory: 'small', landSizePerches: 15, bedrooms: 3, bathrooms: 2, houseType: 'modern' });
 });
+
+test('blocks two immediate generation submissions', async () => {
+  let resolveRequest!: (value: { workflowId: string }) => void;
+  startDesign.mockReturnValue(new Promise(resolve => { resolveRequest = resolve; }));
+  renderPage();
+  fireEvent.click(screen.getByRole('button', { name: /Small Plot/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Next/ }));
+  fireEvent.click(screen.getByRole('button', { name: '1 Bedroom' }));
+  fireEvent.click(screen.getByRole('button', { name: '1 Bathroom (Recommended)' }));
+  fireEvent.click(screen.getByRole('button', { name: /Next/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Simple Family Home/ }));
+  const submit = screen.getByRole('button', { name: /Generate AI Plan/ });
+
+  fireEvent.click(submit);
+  fireEvent.click(submit);
+
+  expect(startDesign).toHaveBeenCalledOnce();
+  resolveRequest({ workflowId: 'workflow-1' });
+  await waitFor(() => expect(screen.getByText('Project Created!')).toBeTruthy());
+});

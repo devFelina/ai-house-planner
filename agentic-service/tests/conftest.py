@@ -24,3 +24,5 @@ def offline_services(monkeypatch):
     monkeypatch.setenv('DATABASE_CONNECTION_STRING', 'postgresql://dummy:dummy@localhost:5432/dummy')
     monkeypatch.setattr('app.agents.land_analysis_agent._persist_terrain', lambda state: None)
     monkeypatch.setattr('app.agents.design_agent._persist_failure', lambda state: None)
+    monkeypatch.setattr('app.orchestration.tool_audit.persist_tool_audit_log', lambda *_args: True)
+    monkeypatch.setattr('app.orchestration.tool_governance.persist_tool_audit_log', lambda *_args: True)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -11,6 +11,7 @@ const IntakeForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const submitLockRef = useRef(false);
 
   // Step 1: Land Information
   const [landSizeCategory, setLandSizeCategory] = useState<'small' | 'medium' | ''>('');
@@ -54,8 +55,10 @@ const IntakeForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
     if (!validateStep(3)) return;
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     let landSizePerches = 15;
@@ -80,6 +83,7 @@ const IntakeForm: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to generate plan.', err);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, MessageSquare, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,11 +22,14 @@ interface AIArchitectChatProps {
 export const AIArchitectChat: React.FC<AIArchitectChatProps> = ({ isOpen, setIsOpen, prompt, setPrompt, showFab = false }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const submitLockRef = useRef(false);
   const navigate = useNavigate();
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLockRef.current) return;
     if (!prompt) return;
+    submitLockRef.current = true;
     setIsGenerating(true);
     const currentPrompt = prompt;
     setPrompt(''); 
@@ -51,6 +54,7 @@ export const AIArchitectChat: React.FC<AIArchitectChatProps> = ({ isOpen, setIsO
      console.error('Assistant error:', err);
      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Failed to interpret message.' }]);
     } finally {
+     submitLockRef.current = false;
      setIsGenerating(false);
     }
   };

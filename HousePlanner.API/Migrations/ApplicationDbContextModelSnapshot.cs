@@ -1121,6 +1121,9 @@ namespace HousePlanner.API.Migrations
                     b.Property<string>("AgentExecutionLogJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("ToolAuditLogJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("ApprovalStatus")
                         .IsRequired()
                         .HasMaxLength(30)

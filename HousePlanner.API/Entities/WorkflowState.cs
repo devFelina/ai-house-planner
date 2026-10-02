@@ -59,6 +59,10 @@ public class WorkflowState
     [Column(TypeName = "jsonb")]
     public string? AgentExecutionLogJson { get; set; }
 
+    /// <summary>Complete sanitized audit entries for governed tool executions.</summary>
+    [Column(TypeName = "jsonb")]
+    public string? ToolAuditLogJson { get; set; }
+
     // Navigation properties
     public virtual ICollection<HouseDesign> HouseDesigns { get; set; } = new List<HouseDesign>();
 }

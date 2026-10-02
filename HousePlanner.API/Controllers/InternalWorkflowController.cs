@@ -11,6 +11,14 @@ namespace HousePlanner.API.Controllers;
 [Route("api/v1/internal/workflows")]
 public class InternalWorkflowController : ControllerBase
 {
+    private static readonly HashSet<string> ToolAuditActions = new(StringComparer.Ordinal)
+    {
+        "tool_call_succeeded",
+        "tool_call_failed",
+        "tool_authorization_denied"
+    };
+    private const int MaxToolAuditEntries = 100;
+    private const int MaxToolAuditPayloadCharacters = 256_000;
     public sealed record VisualizationUpdateRequest(string? ImageUrl, string Status = "completed");
     private readonly ApplicationDbContext _context;
     private readonly ILogger<InternalWorkflowController> _logger;
@@ -256,6 +264,50 @@ public class InternalWorkflowController : ControllerBase
         _logger.LogInformation("Execution log saved for workflow {WorkflowId} ({Count} entries)",
             id, logData.GetArrayLength());
         return Ok(new { message = "Execution log saved.", count = logData.GetArrayLength() });
+    }
+
+    /// <summary>Persist the complete sanitized governed-tool audit trail.</summary>
+    [HttpPatch("{id:guid}/tool-audit-log")]
+    public async Task<IActionResult> UpdateToolAuditLog(Guid id, [FromBody] ToolAuditLogRequest? request)
+    {
+        if (request?.Entries is null || request.Entries.Count == 0 || request.Entries.Count > MaxToolAuditEntries)
+            return BadRequest(new { message = $"Entries must contain between 1 and {MaxToolAuditEntries} items." });
+
+        foreach (var entry in request.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.AgentName)
+                || string.IsNullOrWhiteSpace(entry.Action)
+                || string.IsNullOrWhiteSpace(entry.ToolCalled)
+                || string.IsNullOrWhiteSpace(entry.Result)
+                || string.IsNullOrWhiteSpace(entry.CreatedAtUtc)
+                || !ToolAuditActions.Contains(entry.Action)
+                || entry.DurationMs < 0
+                || !DateTimeOffset.TryParse(entry.CreatedAtUtc, out _))
+            {
+                return BadRequest(new { message = "One or more tool audit entries are invalid." });
+            }
+        }
+
+        var json = JsonSerializer.Serialize(request, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        if (json.Length > MaxToolAuditPayloadCharacters)
+            return BadRequest(new { message = "Tool audit payload is too large." });
+
+        var workflow = await FindWorkflowState(id);
+        if (workflow is null)
+            return NotFound(new { message = $"Unknown workflow {id}." });
+
+        workflow.ToolAuditLogJson = json;
+        workflow.UpdatedAt = DateTimeOffset.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Tool audit log saved for workflow {WorkflowId} ({Count} entries)",
+            id,
+            request.Entries.Count);
+        return Ok(new { message = "Tool audit log saved.", count = request.Entries.Count });
     }
 
     /// <summary>

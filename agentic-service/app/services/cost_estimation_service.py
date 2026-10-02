@@ -32,6 +32,16 @@ from app.schemas.cost_result import CostResult
 from app.schemas.pricing_data import PricingItem
 from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
 from app.tools.pricing_lookup_tool import PricingLookupError, pricing_lookup_tool
+from app.orchestration.tool_governance import (
+    ToolAuthorizationError,
+    assert_tool_allowed,
+    mark_tool_authorization_failure,
+)
+from app.orchestration.tool_audit import (
+    log_tool_failure,
+    log_tool_success,
+    start_tool_timer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +80,10 @@ def cost_estimation_node(state: WorkflowState) -> WorkflowState:
     try:
         result = _run_estimation(state)
         _persist_cost_estimate(state, result)
+    except ToolAuthorizationError as exc:
+        return mark_tool_authorization_failure(
+            state, "CostEstimationAgent", "pricing_lookup", exc
+        )
     except _CostEstimationFailure as exc:
         _record_run(state, "failed", started_at, failure_reason=str(exc))
         _persist_failure(state, str(exc))
@@ -218,15 +232,45 @@ def _run_estimation(state: WorkflowState) -> CostResult:
     # 3. Pricing lookup
     # ------------------------------------------------------------------
     pricing_region, quality_level = _resolve_pricing_context(state)
+    assert_tool_allowed("cost_estimation", "pricing_lookup")
+    tool_input = {"region": pricing_region, "quality_level": quality_level}
+    started_at = start_tool_timer()
     try:
         pricing_items: list[PricingItem] = pricing_lookup_tool(
             region=pricing_region,
             quality_level=quality_level,
         )
     except PricingLookupError as exc:
+        log_tool_failure(
+            state=state,
+            agent_name="cost_estimation",
+            tool_name="pricing_lookup",
+            started_at=started_at,
+            input_summary=tool_input,
+            error=exc,
+        )
         raise _CostEstimationFailure(
             f"Pricing lookup failed; cannot proceed without live pricing data: {exc}"
         ) from exc
+    log_tool_success(
+        state=state,
+        agent_name="cost_estimation",
+        tool_name="pricing_lookup",
+        started_at=started_at,
+        input_summary=tool_input,
+        output_summary={
+            "items_loaded": len(pricing_items),
+            "active_items": sum(1 for item in pricing_items if item.is_active),
+            "material_item_count": sum(
+                1 for item in pricing_items if item.category.strip().lower() == "material"
+            ),
+            "labour_item_count": sum(
+                1 for item in pricing_items if item.category.strip().lower() == "labour"
+            ),
+            "region": pricing_region,
+            "quality_level": quality_level,
+        },
+    )
 
     try:
         breakdown, material_cost, labour_cost, total_cost = calculate_cost_lines(

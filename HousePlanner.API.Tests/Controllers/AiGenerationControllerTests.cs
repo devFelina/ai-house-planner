@@ -116,6 +116,68 @@ namespace HousePlanner.API.Tests.Controllers
         }
 
         [Fact]
+        public async Task Generate_DuplicateActiveRequest_ReusesWorkflowWithoutSecondAgentCall()
+        {
+            var request = new StartDesignRequest
+            {
+                LandSizeCategory = "medium", LandSizePerches = 15,
+                Bedrooms = 3, Bathrooms = 2, HouseType = "modern"
+            };
+            _mockDesignOptionsService
+                .Setup(s => s.ValidateFinalSelectionAsync(It.IsAny<HouseRequirement>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DesignOptionsValidationResult { IsValid = true });
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            var first = Assert.IsType<OkObjectResult>(await _controller.Generate(request, CancellationToken.None));
+            var duplicate = Assert.IsType<OkObjectResult>(await _controller.Generate(request, CancellationToken.None));
+            var firstJson = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(first.Value));
+            var duplicateJson = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(duplicate.Value));
+
+            Assert.Equal(firstJson.GetProperty("WorkflowId").GetGuid(), duplicateJson.GetProperty("WorkflowId").GetGuid());
+            Assert.True(duplicateJson.GetProperty("Reused").GetBoolean());
+            Assert.Single(_dbContext.WorkflowStates);
+            Assert.Single(_dbContext.LandSubmissions);
+            _mockHttpMessageHandler.Protected().Verify(
+                "SendAsync",
+                Times.Once(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Generate_CompletedWorkflow_AllowsNewGeneration()
+        {
+            var request = new StartDesignRequest
+            {
+                LandSizeCategory = "medium", LandSizePerches = 15,
+                Bedrooms = 3, Bathrooms = 2, HouseType = "modern"
+            };
+            _mockDesignOptionsService
+                .Setup(s => s.ValidateFinalSelectionAsync(It.IsAny<HouseRequirement>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DesignOptionsValidationResult { IsValid = true });
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            Assert.IsType<OkObjectResult>(await _controller.Generate(request, CancellationToken.None));
+            var firstWorkflow = await _dbContext.WorkflowStates.SingleAsync();
+            firstWorkflow.Status = "approved";
+            await _dbContext.SaveChangesAsync();
+
+            Assert.IsType<OkObjectResult>(await _controller.Generate(request, CancellationToken.None));
+
+            Assert.Equal(2, await _dbContext.WorkflowStates.CountAsync());
+            Assert.Equal(2, await _dbContext.LandSubmissions.CountAsync());
+            _mockHttpMessageHandler.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(2),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Fact]
         public async Task Generate_UnsupportedConfiguration_Returns400WithSuggestions()
         {
             // Arrange

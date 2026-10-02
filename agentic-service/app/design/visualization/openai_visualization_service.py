@@ -4,12 +4,169 @@ import logging
 from datetime import datetime
 try:
     import openai
+    from openai import AuthenticationError, BadRequestError, PermissionDeniedError, RateLimitError
 except ImportError:
     openai = None
+    AuthenticationError = PermissionDeniedError = RateLimitError = BadRequestError = Exception
 
 from app.config import ENABLE_OPENAI
 
 logger = logging.getLogger(__name__)
+
+MAX_PROMPT_CHARS = 4000
+
+
+def _style_guidance(house_style: str | None) -> tuple[str, str]:
+    """Return a safe display label and visual-only guidance for a supported style."""
+    normalized = str(house_style or "").strip().lower()
+    if normalized == "modern":
+        return (
+            "Modern Family Home",
+            "Apply a modern family-home visual style using contemporary finishes, "
+            "clean materials, practical modern furniture, an open and airy visual "
+            "character, modern kitchen styling, and natural lighting. These visual "
+            "enhancements must not alter the architecture.",
+        )
+    return (
+        "Simple Family Home",
+        "Apply a simple practical family-home visual style using modest finishes, "
+        "comfortable everyday furnishings, and a functional cozy appearance. These "
+        "visual enhancements must not alter the architecture.",
+    )
+
+
+def _plot_label(land_size_category: str | None) -> str:
+    normalized = str(land_size_category or "").strip().lower()
+    return {
+        "small": "Small plot (10–20 perches)",
+        "medium": "Medium plot (20–35 perches)",
+    }.get(normalized, "Unspecified plot category")
+
+
+def _prompt_number(value) -> str:
+    try:
+        return f"{float(value):.1f}"
+    except (TypeError, ValueError):
+        return "0.0"
+
+
+def _build_visualization_prompt(
+    rooms: list[dict],
+    expected_bedrooms: int | None,
+    expected_bathrooms: int | None,
+    land_size_category: str | None,
+    house_style: str | None,
+) -> str:
+    """Build a bounded prompt while retaining every architectural constraint."""
+    room_summary = {}
+    room_details = []
+    for room in rooms:
+        room_type = str(room.get("room_type", "Room")).replace("_", " ").title()
+        room_summary[room_type] = room_summary.get(room_type, 0) + 1
+        name = str(room.get("name") or room_type)
+        room_details.append(
+            f"{name} | {_prompt_number(room.get('width'))}ft x "
+            f"{_prompt_number(room.get('length'))}ft | "
+            f"x={_prompt_number(room.get('x'))} | y={_prompt_number(room.get('y'))}"
+        )
+
+    actual_bedrooms = sum(
+        1 for room in rooms if "bedroom" in str(room.get("room_type", "")).lower()
+    )
+    actual_bathrooms = sum(
+        1 for room in rooms if "bath" in str(room.get("room_type", "")).lower()
+    )
+    bedroom_count = expected_bedrooms if expected_bedrooms is not None else actual_bedrooms
+    bathroom_count = expected_bathrooms if expected_bathrooms is not None else actual_bathrooms
+    style_label, style_text = _style_guidance(house_style)
+    summary_text = "\n".join(f"{name} x{count}" for name, count in room_summary.items())
+
+    one_bathroom_rules = ""
+    if bathroom_count == 1:
+        one_bathroom_rules = (
+            "\n- Exactly one bathroom."
+            "\n- No ensuite."
+            "\n- No guest toilet."
+            "\n- No additional washroom."
+        )
+
+    # Keep invariant constraints before the variable room list. Only room-detail
+    # lines are shortened when the provider prompt limit is reached.
+    prefix = (
+        "ROLE\n"
+        "You are an architectural visualization renderer, not an architectural designer.\n\n"
+        "AUTHORITATIVE DESIGN\n"
+        "The attached blueprint and the provided deterministic layout are the source of truth.\n"
+        "Your task is to enhance appearance only, not redesign the house.\n\n"
+        "USER REQUIREMENTS\n"
+        f"- Plot: {_plot_label(land_size_category)}\n"
+        f"- Bedrooms: {bedroom_count}\n"
+        f"- Bathrooms: {bathroom_count}\n"
+        f"- House style: {style_label}\n"
+        "- Floors: exactly 1\n\n"
+        "MUST PRESERVE\n"
+        "- Keep the house exactly single-floor.\n"
+        "- Keep the exact bedroom count.\n"
+        "- Keep the exact bathroom count.\n"
+        "- Keep the same room set.\n"
+        "- Preserve room boundaries and relative room positions.\n"
+        "- Preserve room dimensions as represented by the blueprint.\n"
+        "- Preserve the overall footprint and spatial arrangement from the blueprint.\n"
+        "- Preserve all doors and openings shown in the blueprint.\n\n"
+        "MUST NOT ADD OR CHANGE\n"
+        "- Do not add extra rooms or remove rooms.\n"
+        "- Do not add another floor or stairs.\n"
+        "- Do not add extra bathrooms, guest toilets, or ensuites unless present.\n"
+        "- Do not add garages, swimming pools, balconies, terraces, or detached structures unless present.\n"
+        "- Do not move walls, resize rooms, or change the building footprint.\n"
+        "- Do not ignore the blueprint."
+        f"{one_bathroom_rules}\n\n"
+        "STYLE GUIDANCE\n"
+        f"{style_text}\n\n"
+        "VISUAL OUTPUT\n"
+        "Create a realistic orthographic top-down furnished residential floor-plan visualization.\n"
+        "Avoid perspective distortion, aerial exterior views, and dollhouse cutaway views.\n"
+        "Add furniture only inside existing rooms, without obscuring walls, doors, openings, "
+        "or important layout structure.\n\n"
+        "ROOM SUMMARY\n"
+        f"{summary_text}\n\n"
+        "LAYOUT DETAILS\n"
+    )
+    available = MAX_PROMPT_CHARS - len(prefix)
+    if available <= 0:
+        return prefix[:MAX_PROMPT_CHARS]
+
+    included = []
+    used = 0
+    for line in room_details:
+        addition = line + "\n"
+        if used + len(addition) > available:
+            break
+        included.append(line)
+        used += len(addition)
+    return prefix + "\n".join(included)
+
+
+def _is_edit_incompatibility(error: BadRequestError) -> bool:
+    """Allow generate fallback only when the edit-specific input/feature is incompatible."""
+    code = str(getattr(error, "code", "") or "").lower()
+    param = str(getattr(error, "param", "") or "").lower()
+    message = str(error).lower()
+    if code in {
+        "invalid_image",
+        "invalid_image_format",
+        "unsupported_image",
+        "unsupported_model",
+        "unsupported_operation",
+    }:
+        return True
+    if param in {"image", "mask"} and any(
+        marker in message for marker in ("invalid", "format", "unsupported", "not supported")
+    ):
+        return True
+    return "edit" in message and any(
+        marker in message for marker in ("unsupported", "not supported", "unavailable", "incompatible")
+    )
 
 
 class OpenAIVisualizationService:
@@ -19,7 +176,14 @@ class OpenAIVisualizationService:
         if self.api_key and openai:
             openai.api_key = self.api_key
 
-    def generate_visualization(self, layout_json: dict, expected_bedrooms: int = None, expected_bathrooms: int = None) -> dict:
+    def generate_visualization(
+        self,
+        layout_json: dict,
+        expected_bedrooms: int = None,
+        expected_bathrooms: int = None,
+        land_size_category: str = None,
+        house_style: str = None,
+    ) -> dict:
         # ---- Kill switch -------------------------------------------------
         if not ENABLE_OPENAI:
             logger.warning("[Visualization] ENABLE_OPENAI=false — no image API call made.")
@@ -76,16 +240,6 @@ class OpenAIVisualizationService:
                 }
 
         img_bytes = render_blueprint(layout_json)
-        room_summary = {}
-        room_details = []
-        for r in rooms:
-            rt = r.get("room_type", "Room").capitalize()
-            room_summary[rt] = room_summary.get(rt, 0) + 1
-            room_details.append(f"- {r.get('name', rt)}: {r.get('width', 0)}ft x {r.get('length', 0)}ft at (X:{r.get('x', 0)}, Y:{r.get('y', 0)})")
-
-        room_list_str = "\n".join(f"{k} x{v}" for k, v in room_summary.items())
-        details_str = "\n".join(room_details)
-
         print("EXPECTED_ROOM_LAYOUT:")
         print(json.dumps({
             "bedrooms": actual_bedrooms if expected_bedrooms is not None else 0,
@@ -93,38 +247,18 @@ class OpenAIVisualizationService:
             "rooms": rooms
         }, indent=1))
 
-        actual_baths = sum(1 for r in rooms if 'bath' in str(r.get("room_type", "")).lower())
-        bathroom_constraints = ""
-        if actual_baths == 1:
-            bathroom_constraints = (
-                "- Exactly one bathroom room.\n"
-                "- No ensuite bathrooms.\n"
-                "- No guest toilets.\n"
-                "- No additional washrooms.\n"
-                "- No extra toilet fixtures.\n"
-                "- Do not invent rooms.\n"
-            )
-
-        prompt = (
-            "You are a rendering engine.\n\n"
-            "Convert this exact architectural blueprint into a realistic top-down residential visualization.\n\n"
-            "The blueprint is the source of truth.\n\n"
-            "Rooms:\n"
-            f"{room_list_str}\n\n"
-            "Layout Details:\n"
-            f"{details_str}\n\n"
-            "Rules:\n"
-            "- Do not add rooms\n"
-            "- Do not remove rooms\n"
-            "- Do not modify room counts\n"
-            "- Follow coordinates exactly\n"
-            f"{bathroom_constraints}"
+        prompt = _build_visualization_prompt(
+            rooms,
+            expected_bedrooms,
+            expected_bathrooms,
+            land_size_category,
+            house_style,
         )
         try:
             if not self.api_key or not openai:
                 raise ValueError("OpenAI API key or library missing.")
 
-            char_count = len(prompt[:4000])
+            char_count = len(prompt)
             print(
                 f"[AI Request] purpose=visualization workflow={self.workflow_id or 'n/a'} "
                 f"characters={char_count} estimated_tokens={char_count // 4}"
@@ -133,22 +267,35 @@ class OpenAIVisualizationService:
             logger.info("[Visualization Agent] Sending prompt to OpenAI")
 
             try:
-                # Use edit if supported for image-to-image
                 response = openai.images.edit(
                     model="gpt-image-1",
                     image=img_bytes,
-                    prompt=prompt[:4000],
+                    prompt=prompt,
                     n=1,
-                    size="1024x1024"
+                    size="1024x1024",
+                    quality="medium",
                 )
-            except Exception:
-                # Fallback to generate if edit is not mocked
+            except BadRequestError as exc:
+                if not _is_edit_incompatibility(exc):
+                    logger.warning(
+                        "[Visualization] Non-retryable OpenAI bad-request error; fallback suppressed."
+                    )
+                    raise
+                logger.info(
+                    "[Visualization] Image edit is incompatible; using one fresh-generation fallback."
+                )
                 response = openai.images.generate(
                     model="gpt-image-1",
-                    prompt=prompt[:4000],
+                    prompt=prompt,
                     n=1,
-                    size="1024x1024"
+                    size="1024x1024",
+                    quality="medium",
                 )
+            except (RateLimitError, AuthenticationError, PermissionDeniedError):
+                logger.warning(
+                    "[Visualization] Non-retryable OpenAI quota/auth/permission error; fallback suppressed."
+                )
+                raise
 
             image = response.data[0]
             image_url = getattr(image, "url", None)
@@ -176,7 +323,7 @@ class OpenAIVisualizationService:
                 "timestamp": datetime.utcnow().isoformat()
             }
         except Exception as e:
-            logger.error(f"[Visualization Agent] AI visualization failed: {e}")
+            logger.error("[Visualization Agent] AI visualization failed (%s).", type(e).__name__)
             return {
                 "visualization_id": str(uuid.uuid4()),
                 "image_url": None,

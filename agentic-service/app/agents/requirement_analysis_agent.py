@@ -23,6 +23,16 @@ from app.providers.openai_provider import OpenAIProvider
 from app.providers.base_provider import ProviderError
 from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
 from app.services.ai_guard import execute_once
+from app.orchestration.tool_governance import (
+    ToolAuthorizationError,
+    assert_tool_allowed,
+    mark_tool_authorization_failure,
+)
+from app.orchestration.tool_audit import (
+    log_tool_failure,
+    log_tool_success,
+    start_tool_timer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +98,16 @@ def requirement_analysis_node(state: WorkflowState) -> WorkflowState:
         return state
 
     print(f"[Requirement Analysis] Processing prompt ({len(prompt)} chars)")
+    existing = dict(state.input_data.preferences or {})
+    tool_input = {
+        "prompt_present": True,
+        "prompt_chars": len(prompt),
+        "explicit_preference_keys": sorted(existing),
+    }
 
     try:
+        assert_tool_allowed("requirement_analysis", "requirement_extractor")
+        started_at = start_tool_timer()
         raw, _ = execute_once(
             state.workflow_id,
             "requirement_analysis",
@@ -101,7 +119,19 @@ def requirement_analysis_node(state: WorkflowState) -> WorkflowState:
                 purpose="requirement_analysis",
             ),
         )
+    except ToolAuthorizationError as exc:
+        return mark_tool_authorization_failure(
+            state, "RequirementAnalysisAgent", "requirement_extractor", exc
+        )
     except ProviderError as exc:
+        log_tool_failure(
+            state=state,
+            agent_name="requirement_analysis",
+            tool_name="requirement_extractor",
+            started_at=started_at,
+            input_summary=tool_input,
+            error=exc,
+        )
         logger.warning("[RequirementAnalysis] Provider unavailable (%s) — state unchanged.", exc)
         state.execution_log.append(ExecutionLogEntry(
             agent_name="RequirementAnalysisAgent",
@@ -111,6 +141,14 @@ def requirement_analysis_node(state: WorkflowState) -> WorkflowState:
         ))
         return state
     except Exception as exc:
+        log_tool_failure(
+            state=state,
+            agent_name="requirement_analysis",
+            tool_name="requirement_extractor",
+            started_at=started_at,
+            input_summary=tool_input,
+            error=exc,
+        )
         logger.error("[RequirementAnalysis] Unexpected error: %s", exc)
         state.execution_log.append(ExecutionLogEntry(
             agent_name="RequirementAnalysisAgent",
@@ -140,12 +178,24 @@ def requirement_analysis_node(state: WorkflowState) -> WorkflowState:
             ai_preferences[pref_key] = value
 
     # Merge: AI inferences form the base; existing explicit preferences override
-    existing = dict(state.input_data.preferences or {})
     merged = {**ai_preferences, **existing}   # existing keys win
 
     state.input_data.preferences = merged
 
     inferred_count = sum(1 for k in ai_preferences if k not in existing)
+    log_tool_success(
+        state=state,
+        agent_name="requirement_analysis",
+        tool_name="requirement_extractor",
+        started_at=started_at,
+        input_summary=tool_input,
+        output_summary={
+            "extracted_keys": sorted(ai_preferences),
+            "fields_extracted": len(ai_preferences),
+            "inferences_applied": inferred_count,
+            "explicit_overrides": len(ai_preferences) - inferred_count,
+        },
+    )
     print(
         f"[Requirement Analysis] Extracted {len(ai_preferences)} fields, "
         f"{inferred_count} new inferences applied, "

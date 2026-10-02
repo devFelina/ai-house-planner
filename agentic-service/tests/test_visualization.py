@@ -44,6 +44,7 @@ from app.schemas.workflow_state import CoordinatorInput
 def _make_state(workflow_id="workflow-1"):
     return SimpleNamespace(
         workflow_id=workflow_id,
+        execution_log=[],
         input_data=CoordinatorInput(
             submission_id="00000000-0000-0000-0000-000000000001",
             land_size_category="medium",
@@ -79,6 +80,13 @@ def test_visualization_node_persists_new_image():
         visualization_node(state)
 
     persist.assert_called_once_with("workflow-1", "http://localhost:8001/visualizations/stable.png")
+    agent.process.assert_called_once_with(
+        state.design_result,
+        1,
+        1,
+        "medium",
+        "conventional",
+    )
     assert state.design_result["ai_visualization"]["image_url"].endswith("stable.png")
 
 

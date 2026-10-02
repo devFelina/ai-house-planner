@@ -17,6 +17,16 @@ from app.schemas.workflow_state import ExecutionLogEntry, WorkflowState
 from app.validation.geometry_validator import validate_geometry
 from app.design.generation.generation_service import generate_layout, prepare_inputs
 from app.design.visualization import VisualizationAgent
+from app.orchestration.tool_governance import (
+    ToolAuthorizationError,
+    assert_tool_allowed,
+    mark_tool_authorization_failure,
+)
+from app.orchestration.tool_audit import (
+    log_tool_failure,
+    log_tool_success,
+    start_tool_timer,
+)
 
 
 def design_node(state: WorkflowState) -> WorkflowState:
@@ -62,7 +72,23 @@ def design_node(state: WorkflowState) -> WorkflowState:
         "floors": 1,
         "notable_features": (state.terrain_result or {}).get('notable_features', [])
     }
+    tool_input = {
+        "bedrooms": preferences["bedrooms"],
+        "bathrooms": preferences["bathrooms"],
+        "floors": preferences["floors"],
+        "land_size_perches": land_size,
+        "terrain_type": terrain_type,
+        "seed_present": bool(state.input_data and state.input_data.design_seed is not None),
+    }
     
+    try:
+        assert_tool_allowed("design", "geometry_generator")
+    except ToolAuthorizationError as exc:
+        return mark_tool_authorization_failure(
+            state, "DesignAgent", "geometry_generator", exc
+        )
+    started_at = start_tool_timer()
+
     try:
         if previous_design is not None:
             preferences = preserve_revision_preferences(preferences, previous_design)
@@ -104,6 +130,14 @@ def design_node(state: WorkflowState) -> WorkflowState:
         if not is_fallback and not validation.passed:
             raise GenerationFailure('Local geometry validation failed.', [{'failures': validation.failures}])
     except (GenerationFailure, ValueError) as exc:
+        log_tool_failure(
+            state=state,
+            agent_name="design",
+            tool_name="geometry_generator",
+            started_at=started_at,
+            input_summary=tool_input,
+            error=exc,
+        )
         state.design_result = None
         state.status = 'failed'
         state.approval_status = 'not_requested'
@@ -122,6 +156,21 @@ def design_node(state: WorkflowState) -> WorkflowState:
             import json
             f.write(json.dumps([e.model_dump() for e in state.execution_log], indent=2))
         return state
+    log_tool_success(
+        state=state,
+        agent_name="design",
+        tool_name="geometry_generator",
+        started_at=started_at,
+        input_summary=tool_input,
+        output_summary={
+            "room_count": len(design.rooms),
+            "floor_count": design.floor_count,
+            "total_built_up_area_sqft": design.total_built_up_area_sqft,
+            "foundation_type": design.foundation_type,
+            "quality_status": quality.status,
+            "geometry_validation_passed": validation.passed,
+        },
+    )
     state.design_result = design.model_dump()
     state.ai_design_generated = True
     state.validation_result = validation.to_dict()

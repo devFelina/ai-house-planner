@@ -78,6 +78,16 @@ def coordinator_node(state: WorkflowState) -> WorkflowState:
 
     # If workflow is failed, stop
     if is_agent_failed(state):
+        try:
+            persist_workflow_plan_state(state)
+        except PlanPersistenceError as e:
+            logger.error(str(e))
+            state.execution_log.append(ExecutionLogEntry(
+                agent_name="CoordinatorAgent",
+                action="plan_persistence_failed",
+                result=str(e),
+                created_at_utc=datetime.now(timezone.utc).isoformat(),
+            ))
         return state
 
     # Determine next step

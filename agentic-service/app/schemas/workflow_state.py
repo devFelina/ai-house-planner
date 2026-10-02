@@ -13,6 +13,11 @@ class ExecutionLogEntry(BaseModel):
     duration_ms:int | None=None
     result:str
     created_at_utc:str
+    event_status:Literal["succeeded","failed"] | None=None
+    input_summary:dict[str, Any] | None=None
+    output_summary:dict[str, Any] | None=None
+    error_type:str | None=None
+    error_summary:str | None=None
 
 class CoordinatorInput(BaseModel):
     submission_id:UUID

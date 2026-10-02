@@ -203,3 +203,23 @@ public sealed class WorkflowPlanStateRequest
     public string? CurrentStepId { get; set; }
     public List<string> CompletedStepIds { get; set; } = new();
 }
+
+public sealed class ToolAuditLogRequest
+{
+    public List<ToolAuditEntryDto>? Entries { get; set; } = new();
+}
+
+public sealed class ToolAuditEntryDto
+{
+    public string AgentName { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? ToolCalled { get; set; }
+    public int? DurationMs { get; set; }
+    public string Result { get; set; } = string.Empty;
+    public string? EventStatus { get; set; }
+    public Dictionary<string, System.Text.Json.JsonElement>? InputSummary { get; set; }
+    public Dictionary<string, System.Text.Json.JsonElement>? OutputSummary { get; set; }
+    public string? ErrorType { get; set; }
+    public string? ErrorSummary { get; set; }
+    public string CreatedAtUtc { get; set; } = string.Empty;
+}
