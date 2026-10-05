@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/network/api_client.dart';
 import '../core/theme/app_tokens.dart';
+import '../models/cost_summary.dart';
 import '../widgets/app_card.dart';
+import '../widgets/cost_breakdown_card.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/status_pill.dart';
 import '../widgets/section_header.dart';
@@ -257,11 +259,11 @@ class _ConstructionViewState extends ConsumerState<ConstructionView> {
                             const SizedBox(height: 24),
                             const Text('2. Review estimate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppTokens.textPrimary)),
                             const SizedBox(height: 8),
-                            Text(
-                              'Estimated cost: ${selectedDesignData['cost'] != null ? 'LKR ${selectedDesignData['cost']['totalCostLkr']}' : 'Not available'}',
-                              style: const TextStyle(color: AppTokens.textSecondary),
+                            CostBreakdownCard(
+                              key: ValueKey('cost-$_selectedDesign'),
+                              cost: CostSummary.tryParse(selectedDesignData['cost']),
                             ),
-                            
+
                             const SizedBox(height: 24),
                             const Text('3. Choose a constructor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppTokens.textPrimary)),
                             const SizedBox(height: 12),
