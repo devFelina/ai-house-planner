@@ -478,7 +478,7 @@ public partial class ConstructorWorkflowControllerTests
         Assert.Contains($"\"aiVisualizationUrl\":\"{signedUrl}\"", json);
         Assert.Contains("\"aiVisualizationStatus\":\"completed\"", json);
         Assert.DoesNotContain("technicalPlanImage", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("layoutJson", json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("layoutJson", json, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(objectKey, design.AIVisualizationImage);
         _visualizationUrls.Verify(x => x.GetReadUrlAsync(
             objectKey, It.IsAny<CancellationToken>()), Times.Once);

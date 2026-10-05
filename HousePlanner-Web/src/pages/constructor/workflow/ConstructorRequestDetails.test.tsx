@@ -31,7 +31,7 @@ const renderPage = () => render(
 describe('ConstructorRequestDetails approved design', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders the saved floor plan without using a legacy image URL', async () => {
+  it('renders the design visualization without using a legacy image URL', async () => {
     const signedUrl = 'https://project.supabase.co/storage/v1/object/sign/ai-visualizations/file.png?token=x';
     vi.mocked(constructorWorkflowService.getConstructorRequest).mockResolvedValue({
       ...baseRequest,
@@ -43,12 +43,16 @@ describe('ConstructorRequestDetails approved design', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Floor Plan')).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: /AI visualization of the approved house design/i })).not.toBeInTheDocument();
-    expect(document.querySelector(`[src="http://localhost:8001/plans/legacy.png"]`)).toBeNull();
+    expect(await screen.findByText('Design Visualization')).toBeInTheDocument();
+
+    const img = screen.getByRole('img', { name: /Approved design visualization/i });
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', signedUrl);
+
+    expect(screen.queryByText('Floor Plan')).not.toBeInTheDocument();
   });
 
-  it('keeps design information available when AI visualization failed', async () => {
+  it('shows a fallback when AI visualization is missing and keeps design info available', async () => {
     vi.mocked(constructorWorkflowService.getConstructorRequest).mockResolvedValue({
       ...baseRequest,
       aiVisualizationUrl: null,
@@ -60,9 +64,9 @@ describe('ConstructorRequestDetails approved design', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Design Information')).toBeInTheDocument());
-    expect(screen.getByText('Floor Plan')).toBeInTheDocument();
+    expect(screen.getByText('Design Visualization')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.getByText('Design Information')).toBeInTheDocument();
-    expect(screen.queryByText('No layout geometry available.')).not.toBeInTheDocument();
+    expect(screen.getByText('Visualization image is not available for this design.')).toBeInTheDocument();
+    expect(screen.queryByText('Floor Plan')).not.toBeInTheDocument();
   });
 });

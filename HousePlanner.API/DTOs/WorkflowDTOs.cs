@@ -24,7 +24,9 @@ public record WorkflowStatusResponseDto(
     int? Bathrooms = null,
     string? HouseType = null,
     WorkflowRequirementsDto? Requirements = null,
-    CostEstimationRunSummaryDto? CostEstimationRun = null
+    CostEstimationRunSummaryDto? CostEstimationRun = null,
+    string? ValidationResultJson = null,
+    DateTimeOffset? ArchitectDecisionDate = null
 );
 
 public record AgentExecutionEventDto(
