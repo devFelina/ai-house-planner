@@ -200,7 +200,7 @@ const ApprovalPage: React.FC = () => {
     <Card title="Generated Floor Plan" subtitle="The AI's rendering of your floor plan design.">
      <div className="flex justify-center bg-surface-elevated rounded-lg border border-border overflow-hidden min-h-[300px]">
       <img
-       src={`https://ai-house-planner-0u8o.onrender.com/plans/plan_${workflowId}.png`}
+       src={`${import.meta.env.VITE_AGENTIC_PUBLIC_URL || 'http://localhost:8001'}/plans/plan_${workflowId}.png`}
        alt="Generated Floor Plan"
        className="max-w-full h-auto object-contain"
        onError={(e) => {

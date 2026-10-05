@@ -9,7 +9,7 @@ using HousePlanner.API.DTOs;
 namespace HousePlanner.API.Controllers
 {
     [ApiController]
-    [Route("api/constructor/workflow")]
+    [Route("api/v1/constructor/workflow")]
     [Authorize] // Require auth, specify roles on actions
     public class ConstructorWorkflowController : ControllerBase
     {
@@ -349,6 +349,7 @@ namespace HousePlanner.API.Controllers
                 terrainType = design?.TerrainType,
                 planReference = design?.BasePreDesignedPlan?.DesignCode ?? design?.TemplateId,
                 layoutType = !string.IsNullOrEmpty(design?.LayoutJson) && design.LayoutJson.Contains("topology") ? "See JSON" : "Standard",
+                layoutJson = design?.LayoutJson,
                 basePreDesignedPlanId = design?.BasePreDesignedPlanId
             });
         }

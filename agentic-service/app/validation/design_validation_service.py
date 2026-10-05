@@ -536,7 +536,6 @@ def _submit_validation_result(state: WorkflowState, val_result: ValidationResult
             json=val_result.model_dump(),
             headers=headers,
             timeout=10,
-            verify=False
         )
     except requests.RequestException as e:
         print(f"[Validation Agent] Could not sync validation status to ASP.NET Core: {e}")

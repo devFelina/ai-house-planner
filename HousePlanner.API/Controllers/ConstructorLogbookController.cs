@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HousePlanner.API.Controllers;
 
 [ApiController]
-[Route("api/constructor/workflow/projects/{projectId}/logs")]
+[Route("api/v1/constructor/workflow/projects/{projectId}/logs")]
 [Authorize(Roles = "Constructor")]
 public class ConstructorLogbookController : ControllerBase
 {

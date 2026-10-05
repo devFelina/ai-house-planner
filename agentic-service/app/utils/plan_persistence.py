@@ -5,8 +5,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from app.schemas.workflow_state import WorkflowState
 from app.schemas.workflow_plan import WorkflowPlan
 
-ASPNET_API_URL = os.getenv("ASPNET_API_URL", "https://ai-house-planner-backend-mryf.onrender.com/api/v1")
-INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "integration-test-only-key")
+from app.config import ASPNET_API_URL, INTERNAL_API_KEY
 
 class PlanPersistenceError(Exception):
     """Raised when the workflow plan cannot be durably persisted."""
@@ -14,7 +13,7 @@ class PlanPersistenceError(Exception):
 
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(1), reraise=True)
 def _do_persist_plan(workflow_id: str, payload: dict) -> None:
-    endpoint = f"{ASPNET_API_URL.rstrip('/')}/internal/workflows/{workflow_id}/plan"
+    endpoint = f"{ASPNET_API_URL.strip().rstrip('/')}/internal/workflows/{workflow_id}/plan"
     headers = {"X-Internal-API-Key": INTERNAL_API_KEY}
     
     with httpx.Client(timeout=10.0) as client:

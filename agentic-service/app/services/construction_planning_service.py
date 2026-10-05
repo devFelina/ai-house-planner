@@ -218,7 +218,6 @@ def construction_planning_node(state:WorkflowState)->WorkflowState:
             json=construction_plan,
             headers={"X-Internal-API-Key":INTERNAL_API_KEY,"Content-Type":"application/json"},
             timeout=10,
-            verify=False
         )
         if response.ok:
             api_result="success"

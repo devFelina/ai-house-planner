@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import type { CostEstimationRunSummaryDto, CostSummaryDto } from '../../services/workflowService';
+import { currencyService } from '../../services/currencyService';
 import Card from '../common/Card';
 
 interface CostBreakdownCardProps {
@@ -7,7 +9,6 @@ interface CostBreakdownCardProps {
  run?: CostEstimationRunSummaryDto | null;
 }
 
-const formatLkr = (value: number) => `LKR ${value.toLocaleString()}`;
 const formatNumber = (value: number, maximumFractionDigits = 2) =>
  value.toLocaleString(undefined, { maximumFractionDigits });
 
@@ -18,6 +19,22 @@ const hasValidCostSummary = (cost: CostSummaryDto | null): cost is CostSummaryDt
  && Number.isFinite(cost.totalCostLkr);
 
 export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardProps) => {
+ const [currency, setCurrency] = useState<'LKR' | 'USD'>('LKR');
+ const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+ const [currencyError, setCurrencyError] = useState<string | null>(null);
+
+ useEffect(() => {
+  let isMounted = true;
+  currencyService.getExchangeRate('LKR', 'USD')
+   .then(response => {
+    if (isMounted) setExchangeRate(response.rate);
+   })
+   .catch(() => {
+    if (isMounted) setCurrencyError('USD conversion temporarily unavailable.');
+   });
+  return () => { isMounted = false; };
+ }, []);
+
  if (!hasValidCostSummary(cost)) {
   return (
    <Card title={hideTitle ? undefined : "Cost Estimate"} subtitle={hideTitle ? undefined : "Current construction cost breakdown for this design."}>
@@ -28,6 +45,20 @@ export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardPro
    </Card>
   );
  }
+
+ const handleCurrencyChange = (newCurrency: 'LKR' | 'USD') => {
+  if (newCurrency === 'USD' && !exchangeRate) {
+   return; // Don't switch if rate is unavailable
+  }
+  setCurrency(newCurrency);
+ };
+
+ const formatCurrency = (value: number) => {
+  if (currency === 'USD' && exchangeRate) {
+   return `USD $${formatNumber(value * exchangeRate)}`;
+  }
+  return `LKR ${value.toLocaleString()}`;
+ };
 
  const budgetPercentage = cost.budgetDeltaPercent;
  const hasBudgetComparison = budgetPercentage !== null && Number.isFinite(budgetPercentage);
@@ -44,9 +75,9 @@ export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardPro
   : null;
 
  const summaryItems = [
-  { label: 'Material Cost', value: formatLkr(cost.materialCostLkr) },
-  { label: 'Labour Cost', value: formatLkr(cost.labourCostLkr) },
-  { label: 'Total Estimated Cost', value: formatLkr(cost.totalCostLkr), emphasized: true },
+  { label: 'Material Cost', value: formatCurrency(cost.materialCostLkr) },
+  { label: 'Labour Cost', value: formatCurrency(cost.labourCostLkr) },
+  { label: 'Total Estimated Cost', value: formatCurrency(cost.totalCostLkr), emphasized: true },
   ...(hasBudgetComparison
    ? [{ label: 'Budget Used %', value: `${formattedPercentage}%`, emphasized: true }]
    : []),
@@ -62,18 +93,40 @@ export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardPro
   const terrain = item.terrainMultiplier === 1
    ? ''
    : ` × ${formatNumber(item.terrainMultiplier)} terrain`;
-  return `${formatLkr(item.unitCostLkr)}/sq ft × ${formatNumber(item.appliedQuantity)} sq ft${terrain}`;
+  return `${formatCurrency(item.unitCostLkr)}/sq ft × ${formatNumber(item.appliedQuantity)} sq ft${terrain}`;
  };
 
  return (
   <Card title={hideTitle ? undefined : "Cost Estimate"} subtitle={hideTitle ? undefined : "Current construction cost breakdown for this design."}>
    <div className="space-y-6">
-    <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-border bg-surface-elevated px-4 py-3 text-xs text-text-secondary">
+    <div className="flex items-center justify-between">
+     <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-border bg-surface-elevated px-4 py-3 text-xs text-text-secondary">
      {cost.formulaVersion && <span>Method: <strong>{cost.formulaVersion}</strong></span>}
      {cost.appliedAreaSqft != null && <span>Applied area: <strong>{formatNumber(cost.appliedAreaSqft)} sq ft</strong></span>}
      {cost.terrainType && <span>Terrain: <strong className="capitalize">{cost.terrainType}</strong></span>}
      {cost.estimatedAt && <span>Estimated: <strong>{new Date(cost.estimatedAt).toLocaleDateString()}</strong></span>}
     </div>
+    <div className="flex items-center gap-2">
+     <span className="text-sm font-semibold text-zinc-700">Currency:</span>
+     <div className="flex items-center rounded bg-surface-muted p-0.5 border border-border">
+      <button
+       onClick={() => handleCurrencyChange('LKR')}
+       className={`px-3 py-1 text-xs font-semibold rounded-sm transition-colors ${currency === 'LKR' ? 'bg-white shadow-sm text-zinc-900' : 'text-text-muted hover:text-zinc-700'}`}
+      >
+       LKR
+      </button>
+      <button
+       onClick={() => handleCurrencyChange('USD')}
+       disabled={!exchangeRate}
+       className={`px-3 py-1 text-xs font-semibold rounded-sm transition-colors ${currency === 'USD' ? 'bg-white shadow-sm text-zinc-900' : 'text-text-muted hover:text-zinc-700'} ${!exchangeRate ? 'opacity-50 cursor-not-allowed' : ''}`}
+       title={!exchangeRate ? "Fetching rate..." : "Switch to USD"}
+      >
+       USD
+      </button>
+     </div>
+     {currencyError && <span className="text-xs text-amber-600 ml-2">{currencyError}</span>}
+    </div>
+   </div>
     {run && <details className="rounded-lg border border-border bg-surface-elevated px-4 py-3 text-xs text-text-secondary">
      <summary className="cursor-pointer font-semibold text-zinc-700">Calculation run details</summary>
      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
@@ -145,7 +198,7 @@ export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardPro
             {formatNumber(item.sharePercent)}%
            </td>
            <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-zinc-900">
-            {formatLkr(item.amountLkr)}
+            {formatCurrency(item.amountLkr)}
            </td>
           </tr>
          ))}
@@ -157,7 +210,7 @@ export const CostBreakdownCard = ({ cost, hideTitle, run }: CostBreakdownCardPro
           </td>
           <td className="px-4 py-3 text-right text-sm font-bold text-indigo-950">100%</td>
           <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-bold text-indigo-950">
-           {formatLkr(cost.totalCostLkr)}
+           {formatCurrency(cost.totalCostLkr)}
           </td>
          </tr>
         </tfoot>

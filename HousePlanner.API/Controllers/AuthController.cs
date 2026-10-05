@@ -52,6 +52,7 @@ public class AuthController(ISupabaseUserSyncService users) : ControllerBase
     public async Task<ActionResult<UserInfoResponseDto>> Me(CancellationToken cancellationToken)
         => await CreateSession(cancellationToken);
 
+    [Authorize]
     [HttpGet("debug")]
     public IActionResult Debug()
     {

@@ -156,7 +156,6 @@ def _persist_terrain(state: WorkflowState):
             json=payload,
             headers=headers,
             timeout=5,
-            verify=False  # Local dev SSL bypass
         )
         if response.ok:
             print(f"[Land Analysis] Terrain persisted to database for workflow {state.workflow_id}")

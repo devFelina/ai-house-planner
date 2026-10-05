@@ -43,8 +43,11 @@ if (string.IsNullOrWhiteSpace(defaultConnection))
 if (!isTesting)
     Console.WriteLine("[Database Configuration] Connection string loaded successfully.");
 
-var internalApiKey = builder.Configuration["AgenticService:InternalApiKey"]
-    ?? Environment.GetEnvironmentVariable("AGENTIC_INTERNAL_API_KEY");
+var internalApiKey = builder.Configuration["AgenticService:InternalApiKey"];
+if (string.IsNullOrWhiteSpace(internalApiKey))
+{
+    internalApiKey = Environment.GetEnvironmentVariable("AGENTIC_INTERNAL_API_KEY");
+}
 if (internalApiKey != null)
 {
     internalApiKey = internalApiKey.Trim();
@@ -54,7 +57,6 @@ if (string.IsNullOrWhiteSpace(internalApiKey))
     if (!isTesting)
         throw new InvalidOperationException(
             "AgenticService:InternalApiKey must be configured through user secrets or environment variables.");
-    internalApiKey = "integration-test-only-key";
 }
 
 // Add PostgreSQL DbContext
@@ -72,11 +74,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         }));
 
 // CORS
+var allowedOriginsStr = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS") ?? "http://localhost:5173";
+var allowedOrigins = allowedOriginsStr.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(o => o.Trim()).ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -237,6 +242,10 @@ builder.Services.AddScoped<PricingDataSeeder>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IConstructorWorkflowService, ConstructorWorkflowService>();
 builder.Services.AddScoped<IDailyConstructionLogService, DailyConstructionLogService>();
+
+// Currency Service
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<ICurrencyService, CurrencyService>();
 
 // AgenticService HTTP client — internalApiKey validated and injected at startup (never falls back to a plain default)
 builder.Services.AddHttpClient("AgenticService", client =>

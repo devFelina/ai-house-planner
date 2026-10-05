@@ -152,6 +152,8 @@ export interface WorkflowStatusResponseDto {
  bathrooms?: number;
  houseType?: string;
  requirements?: WorkflowRequirementsDto;
+ validationResultJson?: string | null;
+ architectDecisionDate?: string | null;
 }
 
 export interface DesignHistoryDto {

@@ -30,9 +30,9 @@ namespace HousePlanner.API.Controllers
 
                 return StatusCode(500, new { status = "Unhealthy", message = "Failed to connect to the database." });
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                return StatusCode(500, new { status = "Unhealthy", message = $"Database connection error: {ex.Message}" });
+                return StatusCode(500, new { status = "Unhealthy", message = "Database connection error." });
             }
         }
     }

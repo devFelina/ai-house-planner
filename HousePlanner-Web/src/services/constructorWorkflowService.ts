@@ -2,8 +2,7 @@ import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import type { CostSummaryDto } from './workflowService';
 
-// The constructor workflow routes live outside /api/v1, so reuse only the configured API origin.
-const API_URL = `${new URL(import.meta.env.VITE_API_BASE_URL, window.location.origin).origin}/api/constructor/workflow`;
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/constructor/workflow`;
 
 // Add the auth token to requests
 const getAuthHeaders = async () => {

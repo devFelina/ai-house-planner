@@ -49,7 +49,7 @@ def get_db_connection_string() -> str:
         return _dotnet_to_psycopg2(raw)
     raise RuntimeError("DATABASE_CONNECTION_STRING not found in .env or environment.")
 
-ASPNET_API_URL = os.getenv("ASPNET_API_URL", "http://localhost:5265/api/v1")
+ASPNET_API_URL = os.getenv("ASPNET_API_URL", "http://localhost:5265/api/v1").strip().rstrip("/")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 if not INTERNAL_API_KEY:
     raise RuntimeError("INTERNAL_API_KEY must be configured in the environment or agentic-service/.env")
@@ -63,9 +63,9 @@ DESIGN_PROVIDER_ORDER = [
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "dummy-key-for-tests")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "dall-e-2").strip()
+OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1").strip()
 ENABLE_AI_VISUALIZATION = os.getenv("ENABLE_AI_VISUALIZATION", "true").strip().lower() in {"1", "true", "yes", "on"}
-AGENTIC_PUBLIC_BASE_URL = os.getenv("AGENTIC_PUBLIC_BASE_URL", "http://localhost:8001").rstrip("/")
+AGENTIC_PUBLIC_BASE_URL = os.getenv("AGENTIC_PUBLIC_BASE_URL", "http://localhost:8001").strip().rstrip("/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 SUPABASE_AI_VISUALIZATION_BUCKET = os.getenv(
@@ -76,7 +76,7 @@ SUPABASE_AI_VISUALIZATION_BUCKET = os.getenv(
 ENABLE_OPENAI = os.getenv("ENABLE_OPENAI", "true").strip().lower() not in {"0", "false", "no", "off"}
 OPENAI_DAILY_LIMIT_USD = float(os.getenv("OPENAI_DAILY_LIMIT_USD", "1.00"))
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip().rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 
 # Optional Fallbacks

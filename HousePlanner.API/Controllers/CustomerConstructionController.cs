@@ -24,16 +24,6 @@ public class CustomerConstructionController : ControllerBase
         _db = db; _currentUser = currentUser; _workflow = workflow; _staff = staff;
     }
 
-    [HttpGet("debug-claims")]
-    [AllowAnonymous]
-    public IActionResult DebugClaims()
-    {
-        Console.WriteLine("=== CUSTOMER CONTROLLER CLAIMS ===");
-        foreach (var c in User.Claims)
-            Console.WriteLine($"{c.Type}: {c.Value}");
-        return Ok(User.Claims.Select(c => new { c.Type, c.Value }));
-    }
-
     private async Task<Guid?> CustomerId()
     {
         var user = await _currentUser.GetAsync(HttpContext);

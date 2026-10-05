@@ -212,7 +212,6 @@ def _submit_design(state: WorkflowState) -> str:
             json=state.design_result,
             headers=headers,
             timeout=10,
-            verify=False  # Bypass SSL for local dev
         )
         if response.ok:
             result_data = response.json()
@@ -238,7 +237,7 @@ def _persist_failure(state: WorkflowState) -> None:
             f'{ASPNET_API_URL}/internal/workflows/{state.workflow_id}/status',
             json={'status': 'failed', 'reason': _safe_failure_reason(state)},
             headers={'X-Internal-API-Key': INTERNAL_API_KEY},
-            timeout=5, verify=False)
+            timeout=5)
         response.raise_for_status()
     except requests.RequestException as exc:
         state.execution_log.append(ExecutionLogEntry(

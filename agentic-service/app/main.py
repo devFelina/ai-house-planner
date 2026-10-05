@@ -8,9 +8,13 @@ from app.config import OUTPUT_PLANS_DIR, VISUALIZATIONS_DIR
 
 app = FastAPI(title="Agentic AI Service - House Planner")
 
+import os
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

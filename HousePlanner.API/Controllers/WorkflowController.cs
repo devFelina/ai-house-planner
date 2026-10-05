@@ -81,6 +81,7 @@ public class WorkflowController : ControllerBase
                     w.FailureReason,
                     w.ConstructionPlan,
                     w.AgentExecutionLogJson,
+                    w.ValidationResultJson,
                     w.LandSubmission.LandSizeCategory,
                     w.LandSubmission.LandSizePerches,
                     w.LandSubmission.PreferredBedrooms,
@@ -256,6 +257,12 @@ public class WorkflowController : ControllerBase
                     run.StartedAt, run.CompletedAt))
                 .FirstOrDefaultAsync();
 
+            var validationRequest = designDto is null ? null : await _context.ValidationRequests.AsNoTracking()
+                .Where(r => r.WorkflowStateId == workflow.Id && r.HouseDesignId == designDto.DesignId)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new { r.Status, r.ArchitectReview, r.DecisionAt })
+                .FirstOrDefaultAsync();
+
             var responseDto = new WorkflowStatusResponseDto(
                 WorkflowId: workflow.Id,
                 Status: workflow.Status,
@@ -267,12 +274,8 @@ public class WorkflowController : ControllerBase
                 ApprovalStatus: workflow.ApprovalStatus,
                 FailureReason: workflow.FailureReason,
                 PreferredHouseDesignId: workflow.PreferredHouseDesignId,
-                ArchitectReviewStatus: designDto is null ? null : await _context.ValidationRequests.AsNoTracking()
-                    .Where(r => r.WorkflowStateId == workflow.Id && r.HouseDesignId == designDto.DesignId)
-                    .OrderByDescending(r => r.CreatedAt).Select(r => r.Status).FirstOrDefaultAsync(),
-                ArchitectFeedback: designDto is null ? null : await _context.ValidationRequests.AsNoTracking()
-                    .Where(r => r.WorkflowStateId == workflow.Id && r.HouseDesignId == designDto.DesignId)
-                    .OrderByDescending(r => r.CreatedAt).Select(r => r.ArchitectReview).FirstOrDefaultAsync(),
+                ArchitectReviewStatus: validationRequest?.Status,
+                ArchitectFeedback: validationRequest?.ArchitectReview,
                 AgentExecutionLog: parsedExecutionLog,
                 LandSizeCategory: workflow.LandSizeCategory,
                 LandSizePerches: workflow.LandSizePerches,
@@ -288,7 +291,9 @@ public class WorkflowController : ControllerBase
                     Bathrooms = workflow.PreferredBathrooms,
                     HouseType = workflow.StylePreference,
                     Floors = workflow.PreferredFloors
-                }
+                },
+                ValidationResultJson: workflow.ValidationResultJson,
+                ArchitectDecisionDate: validationRequest?.DecisionAt
             );
 
             Console.WriteLine("REQUIREMENTS DUMP:");

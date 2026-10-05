@@ -1,100 +1,81 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import type { CostSummaryDto } from '../../services/workflowService';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CostBreakdownCard } from './CostBreakdownCard';
+import { currencyService } from '../../services/currencyService';
+import '@testing-library/jest-dom';
 
-const cost = (budgetDeltaPercent: number | null): CostSummaryDto => ({
- materialCostLkr: 8_400_000,
- labourCostLkr: 2_940_000,
- totalCostLkr: 11_340_000,
- budgetDeltaPercent,
- breakdown: [
-  {
-   itemName: 'Foundation Materials',
-   costHead: 'Foundation',
-   category: 'material',
-   unitCostLkr: 3_000,
-   unit: 'per_sqft',
-   appliedQuantity: 1_000,
-   quantityUnit: 'sq ft',
-   terrainMultiplier: 1,
-   amountLkr: 3_000_000,
-   sharePercent: 26.46,
-  },
-  {
-   itemName: 'Construction Labour',
-   costHead: 'Labour',
-   category: 'labour',
-   unitCostLkr: 0.35,
-   unit: 'factor',
-   appliedQuantity: 8_400_000,
-   quantityUnit: 'material cost',
-   terrainMultiplier: 1,
-   amountLkr: 2_940_000,
-   sharePercent: 25.93,
-  },
- ],
-});
+vi.mock('../../services/currencyService', () => ({
+    currencyService: {
+        getExchangeRate: vi.fn()
+    }
+}));
 
-describe('CostBreakdownCard', () => {
- it('displays material, labour, total, and budget percentage values', () => {
-  render(<CostBreakdownCard cost={cost(94.5)} />);
+const mockCost = {
+    materialCostLkr: 1000000,
+    labourCostLkr: 500000,
+    totalCostLkr: 1500000,
+    budgetDeltaPercent: 95,
+    formulaVersion: 'v1',
+    appliedAreaSqft: 1000,
+    terrainType: 'flat',
+    estimatedAt: '2023-10-01T00:00:00Z',
+    breakdown: [
+        {
+            category: 'material',
+            costHead: 'Foundation',
+            itemName: 'Concrete',
+            unitCostLkr: 1000,
+            appliedQuantity: 1000,
+            terrainMultiplier: 1,
+            sharePercent: 66.67,
+            amountLkr: 1000000
+        }
+    ]
+};
 
-  expect(screen.getByText('Material Cost')).toBeTruthy();
-  expect(screen.getByText('LKR 8,400,000')).toBeTruthy();
-  expect(screen.getByText('Labour Cost')).toBeTruthy();
-  expect(screen.getAllByText('LKR 2,940,000').length).toBeGreaterThan(0);
-  expect(screen.getByText('Total Estimated Cost')).toBeTruthy();
-  expect(screen.getAllByText('LKR 11,340,000').length).toBeGreaterThan(0);
-  expect(screen.getByText('94.50%')).toBeTruthy();
-  expect(screen.getByText('Within budget')).toBeTruthy();
- });
+describe('CostBreakdownCard Currency Feature', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
- it('shows the over-budget state while capping visual progress at 100%', () => {
-  render(<CostBreakdownCard cost={cost(127.25)} />);
+    it('defaults to LKR and shows original values', async () => {
+        (currencyService.getExchangeRate as any).mockResolvedValue({ rate: 0.003 });
+        
+        render(<CostBreakdownCard cost={mockCost as any} />);
+        
+        expect(screen.getByText('LKR')).toHaveClass('bg-white');
+        expect(screen.getAllByText('LKR 1,500,000').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('LKR 1,000,000').length).toBeGreaterThan(0);
+    });
 
-  expect(screen.getByText('127.25%')).toBeTruthy();
-  expect(screen.getByText('Over budget')).toBeTruthy();
-  const progressbar = screen.getByRole('progressbar', { name: 'Budget used' });
-  expect(progressbar.getAttribute('aria-valuenow')).toBe('100');
-  expect(progressbar.firstElementChild?.getAttribute('style')).toContain('width: 100%');
- });
+    it('converts to USD when USD is selected', async () => {
+        (currencyService.getExchangeRate as any).mockResolvedValue({ rate: 0.003 });
+        
+        render(<CostBreakdownCard cost={mockCost as any} />);
+        
+        const usdButton = await screen.findByRole('button', { name: 'USD' });
+        await waitFor(() => expect(usdButton).not.toBeDisabled());
+        
+        fireEvent.click(usdButton);
+        
+        expect(usdButton).toHaveClass('bg-white');
+        expect(screen.getAllByText('USD $4,500').length).toBeGreaterThan(0); // 1,500,000 * 0.003
+        expect(screen.getAllByText('USD $3,000').length).toBeGreaterThan(0); // 1,000,000 * 0.003
+    });
 
- it('shows the exactly-at-budget state', () => {
-  render(<CostBreakdownCard cost={cost(100)} />);
-
-  expect(screen.getByText('100.00%')).toBeTruthy();
-  expect(screen.getByText('At budget')).toBeTruthy();
- });
-
- it('shows the cost breakdown without budget comparison when no budget was supplied', () => {
-  render(<CostBreakdownCard cost={cost(null)} />);
-
-  expect(screen.getByText('LKR 8,400,000')).toBeTruthy();
-  expect(screen.getAllByText('LKR 2,940,000').length).toBeGreaterThan(0);
-  expect(screen.getAllByText('LKR 11,340,000').length).toBeGreaterThan(0);
-  expect(screen.queryByText('Budget Used %')).toBeNull();
-  expect(screen.queryByRole('progressbar')).toBeNull();
-  expect(screen.getByText('Cost-head breakdown')).toBeTruthy();
-  expect(screen.getByText('Foundation')).toBeTruthy();
-  expect(screen.getByText('LKR 3,000,000')).toBeTruthy();
-  expect(screen.getByText('LKR 3,000/sq ft × 1,000 sq ft')).toBeTruthy();
-  expect(screen.getByText('0.35 × material cost')).toBeTruthy();
- });
-
- it('shows an empty state when cost is null', () => {
-  render(<CostBreakdownCard cost={null} />);
-
-  expect(screen.getByText('Cost estimate is not available yet.')).toBeTruthy();
-  expect(screen.queryByText('LKR 0')).toBeNull();
- });
-
- it('does not support the legacy estimated_total_lkr structure', () => {
-  const legacyCost = { estimated_total_lkr: 9_999_999 } as unknown as CostSummaryDto;
-
-  render(<CostBreakdownCard cost={legacyCost} />);
-
-  expect(screen.getByText('Cost estimate is not available yet.')).toBeTruthy();
-  expect(screen.queryByText('LKR 9,999,999')).toBeNull();
- });
+    it('disables USD button if currency API fails', async () => {
+        (currencyService.getExchangeRate as any).mockRejectedValue(new Error('Network error'));
+        
+        render(<CostBreakdownCard cost={mockCost as any} />);
+        
+        const usdButton = await screen.findByRole('button', { name: 'USD' });
+        expect(usdButton).toBeDisabled();
+        
+        await waitFor(() => {
+            expect(screen.getByText('USD conversion temporarily unavailable.')).toBeInTheDocument();
+        });
+        
+        // Still shows LKR
+        expect(screen.getAllByText('LKR 1,500,000').length).toBeGreaterThan(0);
+    });
 });

@@ -1,9 +1,10 @@
 from typing import Any, List
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Security
 from pydantic import BaseModel
 
+from app.api.dependencies import verify_api_key
 from app.workflows.procurement_graph import run_readiness_workflow
 
 router = APIRouter(prefix="/api/v1/orchestration", tags=["Orchestration"])
@@ -32,7 +33,10 @@ class ReadinessRequest(BaseModel):
     inventory: List[MaterialInventory]
 
 @router.post("/readiness")
-async def generate_readiness_plan(request: ReadinessRequest):
+async def generate_readiness_plan(
+    request: ReadinessRequest,
+    api_key: str = Security(verify_api_key)
+):
     from fastapi import HTTPException
     import traceback
     

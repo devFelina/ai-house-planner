@@ -2,11 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { workflowService, type WorkflowStatusResponseDto } from '../services/workflowService';
 import { FloorPlanViewer, type FloorPlanData } from '../components/floorplan/FloorPlanViewer';
-import { Edit2, Trash2, Plus, Save, X } from 'lucide-react';
+import { Edit2, Trash2, Plus, Save, X, CheckCircle, Clock } from 'lucide-react';
 import { AgentTimeline } from '../components/AgentTimeline';
 import useAuth from '../features/auth/useAuth';
 import { formatFloorName, formatRoomName } from '../utils/presentation';
 import { SHOW_TECHNICAL_PLAN } from '../config/features';
+
+const safeDisplayValue = (val: any): string => {
+  if (val === null || val === undefined) return '—';
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+};
 
 export const WorkflowReviewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -506,6 +512,128 @@ export const WorkflowReviewPage: React.FC = () => {
                 </details>
               </section>
             )}
+
+            {/* Section E: Planning / Feasibility Validation */}
+            <section className="bg-white rounded-3xl p-4 md:p-6 md:p-8 shadow-sm border border-slate-200 h-fit">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <CheckCircle className="text-indigo-600" size={24} />
+                Planning / Feasibility Validation
+              </h2>
+              {(() => {
+                if (!workflow.validationResultJson) {
+                  return (
+                    <div className="text-sm text-slate-500 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      Validation has not been completed yet.
+                    </div>
+                  );
+                }
+
+                let parsedValidation: any = null;
+                try {
+                  parsedValidation = JSON.parse(workflow.validationResultJson);
+                } catch {
+                  return <div className="text-sm text-red-500">Failed to parse validation data.</div>;
+                }
+
+                const finalValidationRules = (parsedValidation?.rules || []).filter(
+                  (rule: any) => rule.ruleName?.toLowerCase() !== 'geometry'
+                );
+                const finalValidationPassed = parsedValidation?.passed ?? finalValidationRules.every(
+                  (rule: any) => rule.status ? rule.status !== 'FAIL' : rule.passed
+                );
+
+                return (
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                      finalValidationPassed
+                        ? 'bg-emerald-50 border-emerald-200'
+                        : 'bg-red-50 border-red-200'
+                    }`}>
+                      <span className="font-semibold text-slate-800">Overall Result</span>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                        finalValidationPassed
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-red-100 text-red-800 border-red-300'
+                      }`}>
+                        {finalValidationPassed ? 'PASS' : 'FAIL'}
+                      </span>
+                    </div>
+
+                    {finalValidationRules.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-slate-800">Rule Breakdown</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {finalValidationRules.map((rule: any, idx: number) => (
+                            <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2 relative overflow-hidden">
+                              <div className={`absolute top-0 left-0 w-1 h-full ${rule.status === 'NOT_APPLICABLE' ? 'bg-slate-400' : rule.passed ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-semibold text-sm text-slate-800 capitalize">
+                                  {(rule.ruleName || '').replace(/_/g, ' ')}
+                                </span>
+                                <span className={`text-xs font-bold ${rule.status === 'NOT_APPLICABLE' ? 'text-slate-500' : rule.passed ? 'text-emerald-600' : 'text-red-600'}`}>
+                                  {rule.status === 'NOT_APPLICABLE' ? 'NOT APPLICABLE' : rule.status || (rule.passed ? 'PASS' : 'FAIL')}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs mt-1">
+                                <div>
+                                  <span className="text-slate-500 block mb-0.5">Expected:</span>
+                                  <span className="font-mono text-slate-800 break-words">{safeDisplayValue(rule.expected)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 block mb-0.5">Actual:</span>
+                                  <span className="font-mono text-slate-800 break-words">{safeDisplayValue(rule.actual)}</span>
+                                </div>
+                              </div>
+                              {rule.reason && (
+                                <div className="text-xs text-slate-500 mt-1 pt-2 border-t border-slate-200">
+                                  {rule.reason}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {/* Section F: Architect Review */}
+            <section className="bg-white rounded-3xl p-4 md:p-6 md:p-8 shadow-sm border border-slate-200 h-fit">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">🧑‍💼</span>
+                Architect Review
+              </h2>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-semibold text-slate-700">Status:</span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                    workflow.architectReviewStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    workflow.architectReviewStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                    workflow.architectReviewStatus ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}>
+                    {workflow.architectReviewStatus || 'Pending'}
+                  </span>
+                </div>
+
+                {workflow.architectDecisionDate && (
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <Clock size={16} />
+                    <span>Decision Date: {new Date(workflow.architectDecisionDate).toLocaleString()}</span>
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <span className="text-sm font-semibold text-slate-700 block mb-2">Comment:</span>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                    {workflow.architectFeedback || 'No architect comment provided.'}
+                  </p>
+                </div>
+              </div>
+            </section>
 
           </div>
         ) : (

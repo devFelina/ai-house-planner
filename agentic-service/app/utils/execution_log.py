@@ -102,7 +102,6 @@ def push_execution_log(state: WorkflowState) -> None:
                 "Content-Type": "application/json",
             },
             timeout=8,
-            verify=False,  # bypass SSL for local dev
         )
         if response.ok:
             logger.info(

@@ -261,7 +261,7 @@ def _existing_visualization(workflow_id) -> str | None:
     try:
         response = requests.get(
             f"{ASPNET_API_URL}/internal/workflows/{workflow_id}/visualization",
-            headers=_headers(), timeout=10, verify=False)
+            headers=_headers(), timeout=10)
         if response.ok:
             return response.json().get("imageUrl")
     except requests.RequestException as exc:
@@ -273,7 +273,7 @@ def _persist_visualization(workflow_id, image_url: str) -> None:
     try:
         response = requests.patch(
             f"{ASPNET_API_URL}/internal/workflows/{workflow_id}/visualization",
-            json={"imageUrl": image_url, "status": "completed"}, headers=_headers(), timeout=10, verify=False)
+            json={"imageUrl": image_url, "status": "completed"}, headers=_headers(), timeout=10)
         if not response.ok:
             logger.warning("[Visualization] Image persistence failed with HTTP %s", response.status_code)
     except requests.RequestException as exc:
@@ -284,7 +284,7 @@ def _persist_visualization_status(workflow_id, status: str) -> None:
     try:
         response = requests.patch(
             f"{ASPNET_API_URL}/internal/workflows/{workflow_id}/visualization",
-            json={"imageUrl": None, "status": status}, headers=_headers(), timeout=10, verify=False)
+            json={"imageUrl": None, "status": status}, headers=_headers(), timeout=10)
         if not response.ok:
             logger.warning("[Visualization] Status persistence failed with HTTP %s", response.status_code)
     except requests.RequestException as exc:

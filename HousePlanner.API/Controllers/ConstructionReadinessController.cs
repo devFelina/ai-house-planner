@@ -221,6 +221,7 @@ namespace HousePlanner.API.Controllers
 
             var client = _httpClientFactory.CreateClient();
             var agenticServiceUrl = _configuration["AgenticService:BaseUrl"] ?? "http://localhost:8001";
+            client.DefaultRequestHeaders.Add("X-Internal-API-Key", _configuration["AgenticService:InternalApiKey"]);
 
             object projectData;
             IEnumerable<object> phasesData;
