@@ -17,6 +17,9 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.schemas.workflow_state import (
     CoordinatorInput,
@@ -270,3 +273,10 @@ def test_frontend_dto_shape_matches_timeline_output():
         assert isinstance(entry["agent"], str)
         assert isinstance(entry["status"], str)
         assert isinstance(entry["message"], str)
+
+if __name__ == "__main__":
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    import pytest
+    sys.exit(pytest.main(["-v", "-s", __file__]))
