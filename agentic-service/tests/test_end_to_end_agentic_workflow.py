@@ -2,6 +2,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 from uuid import uuid4
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from app.agents import design_agent, land_analysis_agent
 from app.design.generation import generation_service, spatial_planner
 from app.design.geometry import geometry_generator
@@ -385,3 +389,10 @@ def test_compiled_graph_stops_safely_when_pricing_lookup_fails(monkeypatch, tmp_
     timeline_spy.assert_not_called()
     assert not any(entry.agent_name == "RenderingAgent" for entry in result.execution_log)
     assert list(tmp_path.glob("plan_*.png")) == []
+
+if __name__ == "__main__":
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    import pytest
+    sys.exit(pytest.main(["-v", "--disable-warnings", __file__]))
