@@ -386,7 +386,7 @@ const HomePage: React.FC = () => {
       </div>
       
       <h1 className="text-2xl md:text-4xl sm:text-5xl lg:text-[4.2rem] font-medium text-text-primary tracking-tight leading-[1.1] lg:leading-[1.05] mb-6 font-serif transition-colors">
-       SLIIT.<br/>
+       Plan it Smart.<br/>
        <span className="relative inline-block text-text-secondary transition-colors">
         Build with Confidence.
        </span>
